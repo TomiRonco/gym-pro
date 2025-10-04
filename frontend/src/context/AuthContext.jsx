@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }) => {
       if (response.ok) {
         const data = await response.json()
         setUser(data.user)
-        localStorage.setItem('token', data.access_token)
+        localStorage.setItem('access_token', data.access_token)
         return { success: true }
       } else {
         const errorData = await response.json()
@@ -45,16 +45,16 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     setUser(null)
-    localStorage.removeItem('token')
+    localStorage.removeItem('access_token')
   }
 
   const isAuthenticated = () => {
-    return user !== null || localStorage.getItem('token') !== null
+    return user !== null || localStorage.getItem('access_token') !== null
   }
 
   // Verificar token al cargar
   React.useEffect(() => {
-    const token = localStorage.getItem('token')
+    const token = localStorage.getItem('access_token')
     if (token) {
       // Simular usuario autenticado
       setUser({ email: 'admin@gym.com', name: 'Administrador' })
