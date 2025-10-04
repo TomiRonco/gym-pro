@@ -9,12 +9,29 @@ from app.routers.auth import get_current_user
 
 router = APIRouter()
 
-def generate_membership_number() -> str:
-    """Generar número de membresía único"""
+def generate_membership_number(db: Session) -> str:
+    """Generar número de membresía único e incremental"""
     current_year = datetime.now().year
-    # En una implementación real, consultarías la base de datos para obtener el siguiente número
-    import random
-    return f"GYM{current_year}{random.randint(1000, 9999)}"
+    
+    # Buscar el último número de socio del año actual
+    last_member = db.query(models.Member).filter(
+        models.Member.membership_number.like(f"GYM{current_year}%")
+    ).order_by(models.Member.membership_number.desc()).first()
+    
+    if last_member and last_member.membership_number:
+        # Extraer el número secuencial del último socio
+        try:
+            last_number = int(last_member.membership_number.replace(f"GYM{current_year}", ""))
+            next_number = last_number + 1
+        except ValueError:
+            # Si hay error en el formato, empezar desde 1
+            next_number = 1
+    else:
+        # Si no hay socios del año actual, empezar desde 1
+        next_number = 1
+    
+    # Formatear con ceros a la izquierda (4 dígitos)
+    return f"GYM{current_year}{next_number:04d}"
 
 @router.post("/", response_model=schemas.Member, status_code=status.HTTP_201_CREATED)
 def create_member(
@@ -32,24 +49,30 @@ def create_member(
             detail="Email already registered"
         )
     
-    # Verificar si el número de membresía ya existe
-    db_member_num = db.query(models.Member).filter(
-        models.Member.membership_number == member.membership_number
-    ).first()
-    if db_member_num:
+    # Verificar si el DNI ya existe
+    db_member_dni = db.query(models.Member).filter(models.Member.dni == member.dni).first()
+    if db_member_dni:
         raise HTTPException(
             status_code=400,
-            detail="Membership number already exists"
+            detail="DNI already registered"
         )
     
-    # Si no se proporciona número de membresía, generar uno
+    # Si no se proporciona número de membresía, generar uno automático
     membership_number = member.membership_number
     if not membership_number:
-        membership_number = generate_membership_number()
-        while db.query(models.Member).filter(
+        membership_number = generate_membership_number(db)
+        # Con el nuevo sistema incremental, no necesitamos verificar duplicados
+        # ya que la función garantiza unicidad
+    else:
+        # Solo verificar duplicados si el usuario proporciona un número específico
+        db_member_num = db.query(models.Member).filter(
             models.Member.membership_number == membership_number
-        ).first():
-            membership_number = generate_membership_number()
+        ).first()
+        if db_member_num:
+            raise HTTPException(
+                status_code=400,
+                detail="Membership number already exists"
+            )
     
     db_member = models.Member(**member.dict(), membership_number=membership_number)
     db.add(db_member)
@@ -84,6 +107,7 @@ def list_members(
             models.Member.first_name.ilike(search_filter) |
             models.Member.last_name.ilike(search_filter) |
             models.Member.email.ilike(search_filter) |
+            models.Member.dni.ilike(search_filter) |
             models.Member.membership_number.ilike(search_filter)
         )
     

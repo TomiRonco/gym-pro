@@ -37,6 +37,7 @@ class MemberBase(BaseModel):
     membership_number: str
     first_name: str
     last_name: str
+    dni: str
     email: str
     phone: Optional[str] = None
     address: Optional[str] = None
@@ -46,6 +47,7 @@ class MemberBase(BaseModel):
     membership_type: str
     membership_start_date: date
     membership_end_date: date
+    trainer_id: Optional[int] = None
     notes: Optional[str] = None
 
 class MemberCreate(MemberBase):

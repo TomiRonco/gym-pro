@@ -27,6 +27,7 @@ class Member(Base):
     membership_number = Column(String(20), unique=True, nullable=False, index=True)
     first_name = Column(String(50), nullable=False)
     last_name = Column(String(50), nullable=False)
+    dni = Column(String(20), unique=True, nullable=False, index=True)  # DNI agregado
     email = Column(String(100), unique=True, nullable=False, index=True)
     phone = Column(String(20))
     address = Column(Text)
@@ -37,6 +38,7 @@ class Member(Base):
     membership_start_date = Column(Date, nullable=False)
     membership_end_date = Column(Date, nullable=False)
     is_active = Column(Boolean, default=True)
+    trainer_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Entrenador asignado
     notes = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -44,6 +46,7 @@ class Member(Base):
     # Relaciones
     payments = relationship("Payment", back_populates="member", cascade="all, delete-orphan")
     attendance_records = relationship("Attendance", back_populates="member", cascade="all, delete-orphan")
+    trainer = relationship("User", foreign_keys=[trainer_id])  # Entrenador asignado
 
 class Payment(Base):
     """Modelo para pagos de membresías"""
