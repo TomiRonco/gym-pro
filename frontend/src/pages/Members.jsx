@@ -21,6 +21,7 @@ import {
   XCircle
 } from 'lucide-react'
 import { membersService } from '../services/api'
+import { membershipService } from '../services/membershipService'
 import { useNotification } from '../context/NotificationContext'
 import { useActivity } from '../context/ActivityContext'
 
@@ -424,6 +425,7 @@ const MemberEditModal = ({ member, onClose, onSave, membershipTypes }) => {
 
 const Members = () => {
   const [members, setMembers] = useState([])
+  const [membershipPlans, setMembershipPlans] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [showViewModal, setShowViewModal] = useState(false)
@@ -450,13 +452,34 @@ const Members = () => {
   })
   const [formErrors, setFormErrors] = useState({})
 
-  // Opciones de membresía
-  const membershipTypes = [
-    { value: 'daily', label: 'Pase Diario' },
-    { value: 'monthly', label: 'Mensual' },
-    { value: 'quarterly', label: 'Trimestral' },
-    { value: 'annual', label: 'Anual' }
-  ]
+  // Cargar planes de membresía
+  const loadMembershipPlans = async () => {
+    try {
+      const plans = await membershipService.getPlans()
+      setMembershipPlans(plans)
+      // Si no hay plan seleccionado y hay planes disponibles, seleccionar el primero
+      if (!formData.membership_type && plans.length > 0) {
+        setFormData(prev => ({ ...prev, membership_type: plans[0].plan_type }))
+      }
+    } catch {
+      error('Error al Cargar', 'No se pudieron cargar los planes de membresía')
+    }
+  }
+
+  // Cargar datos iniciales
+  useEffect(() => {
+    loadMembers()
+    loadMembershipPlans()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Obtener opciones de membresía de los planes cargados
+  const membershipTypes = membershipPlans.map(plan => ({
+    value: plan.plan_type,
+    label: plan.name,
+    id: plan.id,
+    price: plan.price,
+    duration_days: plan.duration_days
+  }))
 
   // Cargar miembros
   const loadMembers = async () => {
@@ -478,21 +501,28 @@ const Members = () => {
       const startDate = new Date(formData.membership_start_date)
       let endDate = new Date(startDate)
 
-      switch (formData.membership_type) {
-        case 'daily':
-          endDate.setDate(startDate.getDate() + 1)
-          break
-        case 'monthly':
-          endDate.setMonth(startDate.getMonth() + 1)
-          break
-        case 'quarterly':
-          endDate.setMonth(startDate.getMonth() + 3)
-          break
-        case 'annual':
-          endDate.setFullYear(startDate.getFullYear() + 1)
-          break
-        default:
-          endDate.setMonth(startDate.getMonth() + 1)
+      // Buscar el plan seleccionado para obtener la duración exacta
+      const selectedPlan = membershipPlans.find(plan => plan.plan_type === formData.membership_type)
+      if (selectedPlan) {
+        endDate.setDate(startDate.getDate() + selectedPlan.duration_days)
+      } else {
+        // Fallback a lógica anterior si no se encuentra el plan
+        switch (formData.membership_type) {
+          case 'daily':
+            endDate.setDate(startDate.getDate() + 1)
+            break
+          case 'monthly':
+            endDate.setMonth(startDate.getMonth() + 1)
+            break
+          case 'quarterly':
+            endDate.setMonth(startDate.getMonth() + 3)
+            break
+          case 'annual':
+            endDate.setFullYear(startDate.getFullYear() + 1)
+            break
+          default:
+            endDate.setMonth(startDate.getMonth() + 1)
+        }
       }
 
       setFormData(prev => ({
@@ -500,7 +530,7 @@ const Members = () => {
         membership_end_date: endDate.toISOString().split('T')[0]
       }))
     }
-  }, [formData.membership_start_date, formData.membership_type])
+  }, [formData.membership_start_date, formData.membership_type, membershipPlans])
 
   useEffect(() => {
     loadMembers()

@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import React from 'react'
 import ConfirmDialog from '../components/ConfirmDialog'
 
-export const useConfirm = () => {
+export const useSimpleConfirm = () => {
   const [confirmState, setConfirmState] = useState({
     isOpen: false,
     title: '',
@@ -15,14 +15,17 @@ export const useConfirm = () => {
   
   const resolveRef = useRef(null)
 
-    const showConfirm = (title, message, type = 'danger') => {
+  const showConfirm = (options) => {
     return new Promise((resolve) => {
       resolveRef.current = resolve
       setConfirmState({
         isOpen: true,
-        title,
-        message,
-        type
+        title: options.title || '¿Estás seguro?',
+        message: options.message,
+        type: options.type || 'warning',
+        confirmText: options.confirmText || 'Confirmar',
+        cancelText: options.cancelText || 'Cancelar',
+        loading: false
       })
     })
   }
@@ -42,23 +45,6 @@ export const useConfirm = () => {
     }
     setConfirmState({ isOpen: false, title: '', message: '' })
   }
-
-  const setLoading = (loading) => {
-    setConfirmState(prev => ({ ...prev, loading }))
-  }
-
-  return {
-    confirmState,
-    showConfirm,
-    handleConfirm,
-    handleCancel,
-    setLoading
-  }
-}
-
-// Hook más simple para casos básicos
-export const useSimpleConfirm = () => {
-  const { confirmState, showConfirm, handleConfirm, handleCancel } = useConfirm()
 
   const confirm = (options) => {
     if (typeof options === 'string') {

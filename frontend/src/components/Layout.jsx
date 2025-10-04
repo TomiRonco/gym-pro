@@ -5,7 +5,8 @@ import {
   CreditCard, 
   UserCheck, 
   Settings, 
-  LogOut
+  LogOut,
+  Star
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useNotification } from '../context/NotificationContext'
@@ -19,6 +20,7 @@ const Layout = ({ children, currentPage, onPageChange }) => {
     { id: 'members', label: 'Socios', icon: Users },
     { id: 'payments', label: 'Pagos', icon: CreditCard },
     { id: 'attendance', label: 'Asistencia', icon: UserCheck },
+    { id: 'membership-plans', label: 'Planes', icon: Star },
   ]
 
   const handleLogout = () => {

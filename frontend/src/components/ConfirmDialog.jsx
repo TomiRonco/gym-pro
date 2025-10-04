@@ -74,10 +74,10 @@ const ConfirmDialog = ({
           </div>
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {title}
+              {typeof title === 'string' ? title : 'Confirmación'}
             </h3>
             <p className="text-gray-600 text-sm leading-relaxed">
-              {message}
+              {typeof message === 'string' ? message : 'Por favor confirma esta acción'}
             </p>
           </div>
           <button
@@ -96,7 +96,7 @@ const ConfirmDialog = ({
             disabled={loading}
             className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
           >
-            {cancelText}
+            {typeof cancelText === 'string' ? cancelText : 'Cancelar'}
           </button>
           <button
             onClick={handleConfirm}
@@ -106,7 +106,7 @@ const ConfirmDialog = ({
             {loading ? (
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
             ) : null}
-            {confirmText}
+            {typeof confirmText === 'string' ? confirmText : 'Confirmar'}
           </button>
         </div>
       </div>
