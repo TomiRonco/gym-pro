@@ -23,7 +23,7 @@ const Dashboard = ({ onPageChange }) => {
   const [loading, setLoading] = useState(true)
   const { success, error } = useNotification()
 
-  // Cargar estadísticas
+  // Cargar estadísticas reales
   const loadStats = async () => {
     setLoading(true)
     try {
@@ -32,28 +32,50 @@ const Dashboard = ({ onPageChange }) => {
       if (membersResponse && membersResponse.ok) {
         const members = await membersResponse.json()
         
-        // Calcular estadísticas básicas
-        const activeMembers = members.filter(m => new Date(m.membership_end_date) > new Date())
-        const inactiveMembers = members.filter(m => new Date(m.membership_end_date) <= new Date())
+        // Calcular estadísticas reales
+        const activeMembers = members.filter(m => m.is_active === true)
+        const inactiveMembers = members.filter(m => m.is_active === false)
         
-        // Próximos vencimientos (próximos 7 días)
+        // Próximos vencimientos (próximos 7 días) solo de miembros activos
         const nextWeek = new Date()
         nextWeek.setDate(nextWeek.getDate() + 7)
         const upcomingExpirations = members.filter(m => {
+          if (!m.is_active || !m.membership_end_date) return false
           const endDate = new Date(m.membership_end_date)
           const today = new Date()
           return endDate > today && endDate <= nextWeek
         })
 
+        // Cargar pagos para calcular ingresos del mes
+        let monthlyRevenue = 0
+        try {
+          const paymentsResponse = await authenticatedFetch('/payments')
+          if (paymentsResponse && paymentsResponse.ok) {
+            const payments = await paymentsResponse.json()
+            const currentMonth = new Date().getMonth()
+            const currentYear = new Date().getFullYear()
+            
+            monthlyRevenue = payments
+              .filter(p => {
+                const paymentDate = new Date(p.payment_date)
+                return paymentDate.getMonth() === currentMonth && 
+                       paymentDate.getFullYear() === currentYear
+              })
+              .reduce((sum, p) => sum + (p.amount || 0), 0)
+          }
+        } catch (err) {
+          console.log('No hay datos de pagos aún')
+        }
+
         setStats({
           totalMembers: members.length,
           activeMembers: activeMembers.length,
           inactiveMembers: inactiveMembers.length,
-          monthlyRevenue: 0, // Datos reales - sin ingresos aún
+          monthlyRevenue,
           upcomingExpirations
         })
       } else {
-        // Base de datos limpia - estadísticas en 0
+        // Sin miembros en la base de datos
         setStats({
           totalMembers: 0,
           activeMembers: 0,
@@ -64,7 +86,7 @@ const Dashboard = ({ onPageChange }) => {
       }
     } catch (error) {
       console.error('Error loading stats:', error)
-      // Base de datos limpia en caso de error
+      // Error de conexión - mostrar estadísticas en 0
       setStats({
         totalMembers: 0,
         activeMembers: 0,
