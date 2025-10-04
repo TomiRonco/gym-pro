@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Login</title>
+</head>
+<body>
+    <h2>Test de Login Directo</h2>
+    <form id="loginForm">
+        <div>
+            <label>Usuario:</label>
+            <input type="text" id="username" value="admin" />
+        </div>
+        <div>
+            <label>Contraseña:</label>
+            <input type="password" id="password" value="admin123" />
+        </div>
+        <button type="submit">Login</button>
+    </form>
+    
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                const formData = new FormData();
+                formData.append('username', username);
+                formData.append('password', password);
+                
+                console.log('Enviando login para:', username);
+                
+                const response = await fetch('http://localhost:8000/api/auth/token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams(formData)
+                });
+                
+                console.log('Response status:', response.status);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Login exitoso:', data);
+                    resultDiv.innerHTML = '<div style="color: green;">✅ Login exitoso! Token: ' + data.access_token.substring(0, 50) + '...</div>';
+                } else {
+                    const errorData = await response.text();
+                    console.log('Error de login:', errorData);
+                    resultDiv.innerHTML = '<div style="color: red;">❌ Error: ' + response.status + ' - ' + errorData + '</div>';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                resultDiv.innerHTML = '<div style="color: red;">❌ Error de conexión: ' + error.message + '</div>';
+            }
+        });
+    </script>
+</body>
+</html>

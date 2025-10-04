@@ -1,0 +1,238 @@
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy.orm import Session
+from sqlalchemy import func, and_, extract
+from typing import List, Optional
+from datetime import datetime, date
+from app.database import get_db
+from app import models, schemas
+from app.routers.auth import get_current_user
+
+router = APIRouter()
+
+def generate_membership_number() -> str:
+    """Generar número de membresía único"""
+    current_year = datetime.now().year
+    # En una implementación real, consultarías la base de datos para obtener el siguiente número
+    import random
+    return f"GYM{current_year}{random.randint(1000, 9999)}"
+
+@router.post("/", response_model=schemas.Member, status_code=status.HTTP_201_CREATED)
+def create_member(
+    member: schemas.MemberCreate, 
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
+):
+    """Crear nuevo socio"""
+    
+    # Verificar si el email ya existe
+    db_member = db.query(models.Member).filter(models.Member.email == member.email).first()
+    if db_member:
+        raise HTTPException(
+            status_code=400,
+            detail="Email already registered"
+        )
+    
+    # Verificar si el número de membresía ya existe
+    db_member_num = db.query(models.Member).filter(
+        models.Member.membership_number == member.membership_number
+    ).first()
+    if db_member_num:
+        raise HTTPException(
+            status_code=400,
+            detail="Membership number already exists"
+        )
+    
+    # Si no se proporciona número de membresía, generar uno
+    membership_number = member.membership_number
+    if not membership_number:
+        membership_number = generate_membership_number()
+        while db.query(models.Member).filter(
+            models.Member.membership_number == membership_number
+        ).first():
+            membership_number = generate_membership_number()
+    
+    db_member = models.Member(**member.dict(), membership_number=membership_number)
+    db.add(db_member)
+    db.commit()
+    db.refresh(db_member)
+    return db_member
+
+@router.get("/", response_model=List[schemas.Member])
+def list_members(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    is_active: Optional[bool] = Query(None),
+    membership_type: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
+):
+    """Listar socios con filtros opcionales"""
+    
+    query = db.query(models.Member)
+    
+    # Filtros
+    if is_active is not None:
+        query = query.filter(models.Member.is_active == is_active)
+    
+    if membership_type:
+        query = query.filter(models.Member.membership_type == membership_type)
+    
+    if search:
+        search_filter = f"%{search}%"
+        query = query.filter(
+            models.Member.first_name.ilike(search_filter) |
+            models.Member.last_name.ilike(search_filter) |
+            models.Member.email.ilike(search_filter) |
+            models.Member.membership_number.ilike(search_filter)
+        )
+    
+    members = query.offset(skip).limit(limit).all()
+    return members
+
+@router.get("/{member_id}", response_model=schemas.MemberWithStats)
+def get_member(
+    member_id: int, 
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
+):
+    """Obtener socio por ID con estadísticas"""
+    
+    member = db.query(models.Member).filter(models.Member.id == member_id).first()
+    if member is None:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    # Calcular estadísticas
+    total_payments = db.query(func.sum(models.Payment.amount)).filter(
+        models.Payment.member_id == member_id,
+        models.Payment.is_verified == True
+    ).scalar() or 0
+    
+    total_visits = db.query(func.count(models.Attendance.id)).filter(
+        models.Attendance.member_id == member_id
+    ).scalar() or 0
+    
+    last_visit = db.query(func.max(models.Attendance.check_in_time)).filter(
+        models.Attendance.member_id == member_id
+    ).scalar()
+    
+    # Convertir a dict y agregar estadísticas
+    member_dict = member.__dict__.copy()
+    member_dict.update({
+        "total_payments": total_payments,
+        "total_visits": total_visits,
+        "last_visit": last_visit
+    })
+    
+    return member_dict
+
+@router.put("/{member_id}", response_model=schemas.Member)
+def update_member(
+    member_id: int, 
+    member_update: schemas.MemberUpdate, 
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
+):
+    """Actualizar socio"""
+    
+    db_member = db.query(models.Member).filter(models.Member.id == member_id).first()
+    if db_member is None:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    # Verificar email único si se está actualizando
+    if member_update.email and member_update.email != db_member.email:
+        existing_member = db.query(models.Member).filter(
+            models.Member.email == member_update.email,
+            models.Member.id != member_id
+        ).first()
+        if existing_member:
+            raise HTTPException(status_code=400, detail="Email already in use")
+    
+    # Verificar número de membresía único si se está actualizando
+    if member_update.membership_number and member_update.membership_number != db_member.membership_number:
+        existing_member = db.query(models.Member).filter(
+            models.Member.membership_number == member_update.membership_number,
+            models.Member.id != member_id
+        ).first()
+        if existing_member:
+            raise HTTPException(status_code=400, detail="Membership number already in use")
+    
+    update_data = member_update.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_member, field, value)
+    
+    db_member.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(db_member)
+    return db_member
+
+@router.delete("/{member_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_member(
+    member_id: int, 
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
+):
+    """Eliminar socio (soft delete)"""
+    
+    member = db.query(models.Member).filter(models.Member.id == member_id).first()
+    if member is None:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    # Soft delete: marcar como inactivo en lugar de eliminar
+    member.is_active = False
+    member.updated_at = datetime.utcnow()
+    db.commit()
+    
+    return {"message": "Member deactivated successfully"}
+
+@router.get("/{member_id}/payments", response_model=List[schemas.Payment])
+def get_member_payments(
+    member_id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
+):
+    """Obtener historial de pagos de un socio"""
+    
+    # Verificar que el socio existe
+    member = db.query(models.Member).filter(models.Member.id == member_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    payments = db.query(models.Payment).filter(
+        models.Payment.member_id == member_id
+    ).order_by(models.Payment.payment_date.desc()).offset(skip).limit(limit).all()
+    
+    return payments
+
+@router.get("/{member_id}/attendance", response_model=List[schemas.Attendance])
+def get_member_attendance(
+    member_id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
+):
+    """Obtener historial de asistencia de un socio"""
+    
+    # Verificar que el socio existe
+    member = db.query(models.Member).filter(models.Member.id == member_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    query = db.query(models.Attendance).filter(models.Attendance.member_id == member_id)
+    
+    # Filtros de fecha
+    if start_date:
+        query = query.filter(models.Attendance.check_in_time >= start_date)
+    if end_date:
+        query = query.filter(models.Attendance.check_in_time <= end_date)
+    
+    attendance = query.order_by(
+        models.Attendance.check_in_time.desc()
+    ).offset(skip).limit(limit).all()
+    
+    return attendance

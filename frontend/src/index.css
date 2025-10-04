@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+/* Custom theme configuration */
+@theme {
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+}
+
+/* Base styles for no overflow */
+html, body, #root {
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Custom component styles */
+@layer components {
+  .btn-primary {
+    @apply bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors font-medium;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-medium;
+  }
+  
+  .input {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 transition-colors;
+  }
+  
+  .card {
+    @apply bg-white shadow rounded-lg p-6;
+  }
+  
+  /* Layout utilities */
+  .main-container {
+    @apply h-screen overflow-hidden;
+  }
+  
+  .content-area {
+    @apply h-full overflow-y-auto;
+  }
+  
+  .sidebar-container {
+    @apply h-screen overflow-y-auto;
+  }
+  
+  /* Sidebar específico - sin espacios */
+  .sidebar-fixed {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 16rem; /* 64 en Tailwind = 16rem */
+    z-index: 30;
+  }
+}
