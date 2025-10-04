@@ -710,17 +710,6 @@ const Members = () => {
       member.membership_plan_id === filters.membershipPlan ||
       member.membership_type === filters.membershipPlan
 
-    // Debug para ver los valores
-    if (filters.membershipPlan !== 'all') {
-      console.log('Filtering by plan:', {
-        filterValue: filters.membershipPlan,
-        filterValueInt: parseInt(filters.membershipPlan),
-        memberPlanId: member.membership_plan_id,
-        memberType: member.membership_type,
-        matches: matchesPlan
-      })
-    }
-
     // Filtro de estado de membresía (vigente/vencida)
     const matchesMembershipStatus = filters.membershipStatus === 'all' || (() => {
       if (!member.membership_end_date) return filters.membershipStatus === 'all'

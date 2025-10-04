@@ -78,6 +78,21 @@ def create_member(
     member_data = member.dict()
     member_data['membership_number'] = membership_number
     
+    # Calcular automáticamente la fecha de fin de membresía (1 mes después de la fecha de inicio)
+    if 'membership_start_date' in member_data and member_data['membership_start_date']:
+        start_date = member_data['membership_start_date']
+        if isinstance(start_date, str):
+            from datetime import datetime
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+        
+        # Calcular fecha de fin (1 mes después)
+        if start_date.month == 12:
+            end_date = start_date.replace(year=start_date.year + 1, month=1)
+        else:
+            end_date = start_date.replace(month=start_date.month + 1)
+        
+        member_data['membership_end_date'] = end_date
+    
     db_member = models.Member(**member_data)
     db.add(db_member)
     db.commit()
