@@ -677,7 +677,7 @@ const ScheduleSettings = () => {
         </div>
       )}
 
-      <ConfirmDialog />
+      {ConfirmDialog}
     </div>
   )
 }

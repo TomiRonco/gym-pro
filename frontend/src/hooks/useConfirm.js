@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import React from 'react'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 export const useConfirm = () => {
   const [confirmState, setConfirmState] = useState({
@@ -11,16 +13,18 @@ export const useConfirm = () => {
     onConfirm: () => {},
     loading: false
   })
+  
+  let resolvePromise = null
 
   const showConfirm = ({
     title,
     message,
     confirmText = 'Confirmar',
     cancelText = 'Cancelar',
-    type = 'warning',
-    onConfirm = () => {}
+    type = 'warning'
   }) => {
     return new Promise((resolve) => {
+      resolvePromise = resolve
       setConfirmState({
         isOpen: true,
         title,
@@ -30,7 +34,7 @@ export const useConfirm = () => {
         type,
         onConfirm: () => {
           resolve(true)
-          onConfirm()
+          hideConfirm()
         },
         loading: false
       })
@@ -38,6 +42,9 @@ export const useConfirm = () => {
   }
 
   const hideConfirm = () => {
+    if (resolvePromise && confirmState.isOpen) {
+      resolvePromise(false)
+    }
     setConfirmState(prev => ({ ...prev, isOpen: false }))
   }
 
@@ -57,13 +64,24 @@ export const useConfirm = () => {
 export const useSimpleConfirm = () => {
   const { confirmState, showConfirm, hideConfirm } = useConfirm()
 
-  const confirm = (message, title = '¿Estás seguro?') => {
+  const confirm = (options) => {
+    if (typeof options === 'string') {
+      // Retrocompatibilidad para calls simples
+      return showConfirm({
+        title: '¿Estás seguro?',
+        message: options,
+        type: 'warning',
+        confirmText: 'Sí, confirmar',
+        cancelText: 'Cancelar'
+      })
+    }
+    
     return showConfirm({
-      title,
-      message,
-      type: 'warning',
-      confirmText: 'Sí, confirmar',
-      cancelText: 'Cancelar'
+      title: options.title || '¿Estás seguro?',
+      message: options.message,
+      type: options.type || 'warning',
+      confirmText: options.confirmText || 'Confirmar',
+      cancelText: options.cancelText || 'Cancelar'
     })
   }
 
@@ -87,11 +105,22 @@ export const useSimpleConfirm = () => {
     })
   }
 
+  const ConfirmDialogComponent = () => React.createElement(ConfirmDialog, {
+    isOpen: confirmState.isOpen,
+    onClose: hideConfirm,
+    onConfirm: confirmState.onConfirm,
+    title: confirmState.title,
+    message: confirmState.message,
+    confirmText: confirmState.confirmText,
+    cancelText: confirmState.cancelText,
+    type: confirmState.type,
+    loading: confirmState.loading
+  })
+
   return {
-    confirmState,
-    hideConfirm,
     confirm,
     confirmDelete,
-    confirmDeleteAll
+    confirmDeleteAll,
+    ConfirmDialog: ConfirmDialogComponent
   }
 }
