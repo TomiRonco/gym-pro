@@ -591,7 +591,7 @@ const Members = () => {
       // Registrar actividad de nuevo socio
       addMemberActivity(`${formData.first_name} ${formData.last_name}`)
       
-      success('Socio creado exitosamente', 'El nuevo socio ha sido registrado correctamente')
+      success('Socio Creado', 'El nuevo socio ha sido registrado correctamente')
       
     } catch (err) {
       console.error('Error creating member:', err)
@@ -602,10 +602,10 @@ const Members = () => {
         } else if (err.response.data.detail.includes('DNI already exists')) {
           setFormErrors({ dni: 'Este DNI ya está registrado' })
         } else {
-          error('Error al crear socio', err.response.data.detail)
+          error('Error al Crear', err.response.data.detail)
         }
       } else {
-        error('Error al crear socio', 'Verifique los datos e intente nuevamente')
+        error('Error al Crear', 'Verifique los datos e intente nuevamente')
       }
     } finally {
       setLoading(false)
@@ -633,12 +633,17 @@ const Members = () => {
         member.id === editingMember.id ? updatedMember : member
       ))
       
+      // Actualizar selectedMember si es el mismo que se está editando
+      if (selectedMember && selectedMember.id === editingMember.id) {
+        setSelectedMember(updatedMember)
+      }
+      
       setShowEditModal(false)
       setEditingMember(null)
-      success('Socio actualizado exitosamente', 'Los cambios se han guardado correctamente')
+      success('Socio Actualizado', 'Los cambios se han guardado correctamente')
     } catch (err) {
       console.error('Error al actualizar miembro:', err)
-      error(`Error al actualizar socio: ${err.message || 'Error desconocido'}`, 'Verifique los datos e intente nuevamente')
+      error('Error al Actualizar', err.message || 'No se pudieron actualizar los datos del socio')
     }
   }
 
@@ -653,6 +658,11 @@ const Members = () => {
       setMembers(prev => prev.map(m => 
         m.id === member.id ? updatedMember : m
       ))
+      
+      // Actualizar selectedMember si es el mismo que se está cambiando de estado
+      if (selectedMember && selectedMember.id === member.id) {
+        setSelectedMember(updatedMember)
+      }
       
       const statusText = updatedMember.is_active ? 'activado' : 'desactivado'
       success(`Socio ${statusText} exitosamente`, `El estado del socio se ha actualizado correctamente`)

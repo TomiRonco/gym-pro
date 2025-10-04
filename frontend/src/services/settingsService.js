@@ -27,12 +27,41 @@ export const settingsService = {
   // ====== HORARIOS ======
   getSchedules: async () => {
     const response = await authenticatedFetch('/settings/schedules')
-    return response
+    if (!response || !response.ok) {
+      throw new Error('Error al obtener horarios')
+    }
+    return await response.json()
+  },
+
+  getSchedulesByDay: async (day) => {
+    const response = await authenticatedFetch(`/settings/schedules/day/${day}`)
+    if (!response || !response.ok) {
+      throw new Error('Error al obtener horarios del día')
+    }
+    return await response.json()
   },
 
   getSchedule: async (scheduleId) => {
     const response = await authenticatedFetch(`/settings/schedules/${scheduleId}`)
-    return response
+    if (!response || !response.ok) {
+      throw new Error('Error al obtener horario')
+    }
+    return await response.json()
+  },
+
+  createSchedule: async (scheduleData) => {
+    const response = await authenticatedFetch('/settings/schedules', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(scheduleData)
+    })
+    if (!response || !response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.detail || 'Error al crear horario')
+    }
+    return await response.json()
   },
 
   updateSchedule: async (scheduleId, scheduleData) => {
@@ -43,7 +72,31 @@ export const settingsService = {
       },
       body: JSON.stringify(scheduleData)
     })
-    return response
+    if (!response || !response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.detail || 'Error al actualizar horario')
+    }
+    return await response.json()
+  },
+
+  deleteSchedule: async (scheduleId) => {
+    const response = await authenticatedFetch(`/settings/schedules/${scheduleId}`, {
+      method: 'DELETE'
+    })
+    if (!response || !response.ok) {
+      throw new Error('Error al eliminar horario')
+    }
+    return await response.json()
+  },
+
+  clearAllSchedules: async () => {
+    const response = await authenticatedFetch('/settings/schedules/clear/all', {
+      method: 'DELETE'
+    })
+    if (!response || !response.ok) {
+      throw new Error('Error al limpiar horarios')
+    }
+    return await response.json()
   },
 
   // ====== PLANES DE MEMBRESÍA ======

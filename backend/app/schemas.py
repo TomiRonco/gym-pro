@@ -223,6 +223,7 @@ class GymSettings(GymSettingsBase):
 # Esquemas para horarios
 class ScheduleBase(BaseModel):
     day_of_week: int  # 0=Lunes, 1=Martes, ..., 6=Domingo
+    name: str  # Nombre del horario
     opening_time: str  # Formato HH:MM
     closing_time: str  # Formato HH:MM
     is_open: bool = True
@@ -232,6 +233,7 @@ class ScheduleCreate(ScheduleBase):
     pass
 
 class ScheduleUpdate(BaseModel):
+    name: Optional[str] = None
     opening_time: Optional[str] = None
     closing_time: Optional[str] = None
     is_open: Optional[bool] = None

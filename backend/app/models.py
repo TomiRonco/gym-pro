@@ -108,6 +108,7 @@ class Schedule(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     day_of_week = Column(Integer, nullable=False)  # 0=Lunes, 1=Martes, ..., 6=Domingo
+    name = Column(String(100), nullable=False)  # Nombre del horario (ej: "Horario Mañana", "Horario Tarde")
     opening_time = Column(String(5), nullable=False)  # Formato HH:MM
     closing_time = Column(String(5), nullable=False)  # Formato HH:MM
     is_open = Column(Boolean, default=True)

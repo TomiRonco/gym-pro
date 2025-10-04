@@ -42,7 +42,7 @@ app.include_router(members.router, prefix="/api/members", tags=["👥 Members"])
 app.include_router(payments.router, prefix="/api/payments", tags=["💰 Payments"])
 app.include_router(attendance.router, prefix="/api/attendance", tags=["📅 Attendance"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["📊 Dashboard"])
-app.include_router(settings.router, tags=["⚙️ Settings"])
+app.include_router(settings.router, prefix="/api/settings", tags=["⚙️ Settings"])
 
 @app.get("/")
 async def root():

@@ -7,13 +7,13 @@ const Attendance = () => {
   const [showModal, setShowModal] = useState(false)
   const [memberName, setMemberName] = useState('')
   const { addCheckinActivity } = useActivity()
-  const { addNotification } = useNotification()
+  const { success, error } = useNotification()
 
   const handleCheckin = (e) => {
     e.preventDefault()
     
     if (!memberName.trim()) {
-      addNotification('Por favor ingresa el nombre del socio', 'error')
+      error('Campo Requerido', 'Por favor ingresa el nombre del socio')
       return
     }
     
@@ -21,7 +21,7 @@ const Attendance = () => {
     addCheckinActivity(memberName.trim())
     
     // Mostrar notificación de éxito
-    addNotification(`Check-in registrado para ${memberName}`, 'success')
+    success('Check-in Registrado', `Entrada registrada para ${memberName}`)
     
     // Resetear formulario y cerrar modal
     setMemberName('')
