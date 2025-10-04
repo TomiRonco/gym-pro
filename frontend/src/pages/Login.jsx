@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useNotification } from '../context/NotificationContext';
 import { Eye, EyeOff, User, Lock, Dumbbell } from 'lucide-react';
 
 const Login = () => {
@@ -12,6 +13,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
 
   const { login, isAuthenticated } = useAuth();
+  const { success, error: notificationError } = useNotification();
 
   // Si ya está autenticado, no mostrar el login
   if (isAuthenticated) {
@@ -22,18 +24,14 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
-
-    console.log('🔐 Intentando login con:', formData.username);
     
     const result = await login(formData.username, formData.password);
     
-    console.log('📝 Resultado del login:', result);
-    
     if (!result.success) {
       setError(result.error);
-      console.error('❌ Error en login:', result.error);
+      notificationError('Error de autenticación', result.error || 'Credenciales incorrectas');
     } else {
-      console.log('✅ Login exitoso!');
+      success('¡Bienvenido!', 'Has iniciado sesión correctamente');
     }
     
     setLoading(false);

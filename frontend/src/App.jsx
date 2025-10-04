@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { NotificationProvider } from './context/NotificationContext'
-import Login from './components/Login'
+import Login from './pages/Login'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Members from './pages/Members'
@@ -26,7 +26,7 @@ function AppContent() {
     document.title = title
   }, [currentPage])
 
-  if (!isAuthenticated()) {
+  if (!isAuthenticated) {
     // Título para login
     document.title = 'Iniciar Sesión - Gym Pro'
     return <Login />

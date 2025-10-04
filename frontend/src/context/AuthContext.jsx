@@ -14,21 +14,50 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  // Verificar token al cargar
+  React.useEffect(() => {
+    const token = localStorage.getItem('access_token')
+    if (token) {
+      // Simular usuario autenticado
+      setUser({ email: 'admin@gym.com', name: 'Administrador' })
+      setIsAuthenticated(true)
+    } else {
+      setUser(null)
+      setIsAuthenticated(false)
+    }
+  }, [])
+
+  // Escuchar cambios en localStorage para detectar logout desde otros tabs
+  React.useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'access_token' && !e.newValue) {
+        setUser(null)
+        setIsAuthenticated(false)
+      }
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
 
   const login = async (email, password) => {
     setLoading(true)
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const formData = new FormData()
+      formData.append('username', email)
+      formData.append('password', password)
+      
+      const response = await fetch(`${API_BASE_URL}/auth/token`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+        body: formData,
       })
 
       if (response.ok) {
         const data = await response.json()
-        setUser(data.user)
+        setUser({ email: email, name: 'Administrador' })
+        setIsAuthenticated(true)
         localStorage.setItem('access_token', data.access_token)
         return { success: true }
       } else {
@@ -45,21 +74,9 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     setUser(null)
+    setIsAuthenticated(false)
     localStorage.removeItem('access_token')
   }
-
-  const isAuthenticated = () => {
-    return user !== null || localStorage.getItem('access_token') !== null
-  }
-
-  // Verificar token al cargar
-  React.useEffect(() => {
-    const token = localStorage.getItem('access_token')
-    if (token) {
-      // Simular usuario autenticado
-      setUser({ email: 'admin@gym.com', name: 'Administrador' })
-    }
-  }, [])
 
   const value = {
     user,

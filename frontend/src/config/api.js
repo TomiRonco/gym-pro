@@ -2,7 +2,7 @@ const API_BASE_URL = 'http://localhost:8001/api'
 
 // Función helper para hacer peticiones autenticadas
 export const authenticatedFetch = async (url, options = {}) => {
-  const token = localStorage.getItem('token')
+  const token = localStorage.getItem('access_token')
   
   const config = {
     ...options,
@@ -15,10 +15,10 @@ export const authenticatedFetch = async (url, options = {}) => {
   
   const response = await fetch(`${API_BASE_URL}${url}`, config)
   
-  // Si el token expiró, redirigir al login
+  // Si el token expiró, limpiar el storage y permitir que el AuthContext maneje el logout
   if (response.status === 401) {
-    localStorage.removeItem('token')
-    window.location.href = '/'
+    localStorage.removeItem('access_token')
+    // No hacer redirect directo, dejar que la aplicación lo maneje
     return null
   }
   

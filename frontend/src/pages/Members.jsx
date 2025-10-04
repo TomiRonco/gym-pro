@@ -21,9 +21,11 @@ import {
   XCircle
 } from 'lucide-react'
 import { membersService } from '../services/api'
+import { useNotification } from '../context/NotificationContext'
 
 // Componente para el modal de edición
 const MemberEditModal = ({ member, onClose, onSave, membershipTypes }) => {
+  const { error } = useNotification()
   const [formData, setFormData] = useState({
     first_name: member.first_name || '',
     last_name: member.last_name || '',
@@ -133,14 +135,18 @@ const MemberEditModal = ({ member, onClose, onSave, membershipTypes }) => {
     try {
       setLoading(true)
       await onSave(formData)
-    } catch (error) {
-      console.error('Error updating member:', error)
-      if (error.response?.data?.detail) {
-        if (error.response.data.detail.includes('Email already registered')) {
+    } catch (err) {
+      console.error('Error updating member:', err)
+      if (err.response?.data?.detail) {
+        if (err.response.data.detail.includes('Email already registered')) {
           setFormErrors({ email: 'Este email ya está registrado' })
-        } else if (error.response.data.detail.includes('DNI already exists')) {
+        } else if (err.response.data.detail.includes('DNI already exists')) {
           setFormErrors({ dni: 'Este DNI ya está registrado' })
+        } else {
+          error('Error al editar socio', err.response.data.detail)
         }
+      } else {
+        error('Error al editar socio', 'Verifique los datos e intente nuevamente')
       }
     } finally {
       setLoading(false)
@@ -424,6 +430,7 @@ const Members = () => {
   const [selectedMember, setSelectedMember] = useState(null)
   const [editingMember, setEditingMember] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const { success, error } = useNotification()
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -578,16 +585,21 @@ const Members = () => {
       setShowModal(false)
       setFormErrors({})
       await loadMembers()
+      success('Socio creado exitosamente', 'El nuevo socio ha sido registrado correctamente')
       
-    } catch (error) {
-      console.error('Error creating member:', error)
+    } catch (err) {
+      console.error('Error creating member:', err)
       // Manejar errores específicos del backend
-      if (error.response?.data?.detail) {
-        if (error.response.data.detail.includes('Email already registered')) {
+      if (err.response?.data?.detail) {
+        if (err.response.data.detail.includes('Email already registered')) {
           setFormErrors({ email: 'Este email ya está registrado' })
-        } else if (error.response.data.detail.includes('DNI already exists')) {
+        } else if (err.response.data.detail.includes('DNI already exists')) {
           setFormErrors({ dni: 'Este DNI ya está registrado' })
+        } else {
+          error('Error al crear socio', err.response.data.detail)
         }
+      } else {
+        error('Error al crear socio', 'Verifique los datos e intente nuevamente')
       }
     } finally {
       setLoading(false)
@@ -609,9 +621,7 @@ const Members = () => {
   // Función para actualizar socio
   const handleUpdateMember = async (memberData) => {
     try {
-      console.log('Actualizando miembro:', memberData)
       const updatedMember = await membersService.updateMember(editingMember.id, memberData)
-      console.log('Miembro actualizado:', updatedMember)
       
       setMembers(prev => prev.map(member => 
         member.id === editingMember.id ? updatedMember : member
@@ -619,19 +629,16 @@ const Members = () => {
       
       setShowEditModal(false)
       setEditingMember(null)
-      alert('Socio actualizado exitosamente')
-    } catch (error) {
-      console.error('Error al actualizar miembro:', error)
-      alert(`Error al actualizar socio: ${error.message}`)
+      success('Socio actualizado exitosamente', 'Los cambios se han guardado correctamente')
+    } catch (err) {
+      console.error('Error al actualizar miembro:', err)
+      error(`Error al actualizar socio: ${err.message || 'Error desconocido'}`, 'Verifique los datos e intente nuevamente')
     }
   }
 
   // Función para activar/desactivar socio
   const handleToggleStatus = async (member) => {
     try {
-      const newStatus = member.is_active ? 'inactive' : 'active'
-      console.log(`Cambiando estado del miembro ${member.id} a ${newStatus}`)
-      
       const updatedMember = await membersService.updateMember(member.id, {
         ...member,
         is_active: !member.is_active
@@ -642,10 +649,10 @@ const Members = () => {
       ))
       
       const statusText = updatedMember.is_active ? 'activado' : 'desactivado'
-      alert(`Socio ${statusText} exitosamente`)
-    } catch (error) {
-      console.error('Error al cambiar estado del miembro:', error)
-      alert(`Error al cambiar estado del socio: ${error.message}`)
+      success(`Socio ${statusText} exitosamente`, `El estado del socio se ha actualizado correctamente`)
+    } catch (err) {
+      console.error('Error al cambiar estado del miembro:', err)
+      error(`Error al cambiar estado del socio: ${err.message || 'Error desconocido'}`, 'Intente nuevamente en unos momentos')
     }
   }
 
