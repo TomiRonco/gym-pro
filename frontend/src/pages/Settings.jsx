@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { settingsService } from '../services/settingsService'
 import { useNotification } from '../context/NotificationContext'
+import { useSimpleConfirm } from '../hooks/useConfirm'
 
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState('gym')
@@ -316,6 +317,7 @@ const ScheduleSettings = () => {
   const [showModal, setShowModal] = useState(false)
   const [editingSchedule, setEditingSchedule] = useState(null)
   const { success, error } = useNotification()
+  const { confirm, ConfirmDialog } = useSimpleConfirm()
 
   const [formData, setFormData] = useState({
     day_of_week: 0,
@@ -389,9 +391,15 @@ const ScheduleSettings = () => {
     const scheduleToDelete = schedules.find(s => s.id === scheduleId)
     const scheduleName = scheduleToDelete ? scheduleToDelete.name : 'este horario'
     
-    if (!window.confirm(`¿Estás seguro de que deseas eliminar "${scheduleName}"?`)) {
-      return
-    }
+    const confirmed = await confirm({
+      title: 'Eliminar Horario',
+      message: `¿Estás seguro de que deseas eliminar "${scheduleName}"?`,
+      type: 'danger',
+      confirmText: 'Eliminar',
+      cancelText: 'Cancelar'
+    })
+    
+    if (!confirmed) return
 
     try {
       setLoading(true)
@@ -408,9 +416,16 @@ const ScheduleSettings = () => {
 
   const handleClearAllSchedules = async () => {
     const scheduleCount = schedules.length
-    if (!window.confirm(`¿Estás seguro de que deseas eliminar TODOS los ${scheduleCount} horarios? Esta acción no se puede deshacer.`)) {
-      return
-    }
+    
+    const confirmed = await confirm({
+      title: 'Eliminar Todos los Horarios',
+      message: `¿Estás seguro de que deseas eliminar TODOS los ${scheduleCount} horarios? Esta acción no se puede deshacer.`,
+      type: 'danger',
+      confirmText: 'Eliminar Todo',
+      cancelText: 'Cancelar'
+    })
+    
+    if (!confirmed) return
 
     try {
       setLoading(true)
@@ -661,6 +676,8 @@ const ScheduleSettings = () => {
           <p className="mt-2 text-gray-600">Cargando horarios...</p>
         </div>
       )}
+
+      <ConfirmDialog />
     </div>
   )
 }
