@@ -50,13 +50,28 @@ class MemberBase(BaseModel):
     trainer_id: Optional[int] = None
     notes: Optional[str] = None
 
-class MemberCreate(MemberBase):
-    pass
+class MemberCreate(BaseModel):
+    membership_number: Optional[str] = None  # Opcional para auto-generación
+    first_name: str
+    last_name: str
+    dni: str
+    email: str
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    birth_date: Optional[date] = None
+    emergency_contact_name: Optional[str] = None
+    emergency_contact_phone: Optional[str] = None
+    membership_type: str
+    membership_start_date: date
+    membership_end_date: date
+    trainer_id: Optional[int] = None
+    notes: Optional[str] = None
 
 class MemberUpdate(BaseModel):
     membership_number: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
+    dni: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
     address: Optional[str] = None
@@ -66,6 +81,7 @@ class MemberUpdate(BaseModel):
     membership_type: Optional[str] = None
     membership_start_date: Optional[date] = None
     membership_end_date: Optional[date] = None
+    trainer_id: Optional[int] = None
     is_active: Optional[bool] = None
     notes: Optional[str] = None
 

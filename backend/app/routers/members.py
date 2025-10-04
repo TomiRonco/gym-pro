@@ -74,7 +74,11 @@ def create_member(
                 detail="Membership number already exists"
             )
     
-    db_member = models.Member(**member.dict(), membership_number=membership_number)
+    # Crear diccionario con todos los datos del miembro
+    member_data = member.dict()
+    member_data['membership_number'] = membership_number
+    
+    db_member = models.Member(**member_data)
     db.add(db_member)
     db.commit()
     db.refresh(db_member)
