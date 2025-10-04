@@ -15,45 +15,32 @@ export const useConfirm = () => {
   
   const resolveRef = useRef(null)
 
-  const showConfirm = ({
-    title,
-    message,
-    confirmText = 'Confirmar',
-    cancelText = 'Cancelar',
-    type = 'warning'
-  }) => {
-    console.log('showConfirm called with:', { title, message, type })
+    const showConfirm = (title, message, type = 'danger') => {
     return new Promise((resolve) => {
       resolveRef.current = resolve
-      console.log('Setting confirmState, resolveRef set:', !!resolveRef.current)
       setConfirmState({
         isOpen: true,
         title,
         message,
-        confirmText,
-        cancelText,
-        type,
-        loading: false
+        type
       })
     })
   }
 
   const handleConfirm = () => {
-    console.log('handleConfirm called, resolveRef:', !!resolveRef.current)
     if (resolveRef.current) {
       resolveRef.current(true)
       resolveRef.current = null
     }
-    setConfirmState(prev => ({ ...prev, isOpen: false }))
+    setConfirmState({ isOpen: false, title: '', message: '' })
   }
 
   const handleCancel = () => {
-    console.log('handleCancel called, resolveRef:', !!resolveRef.current)
     if (resolveRef.current) {
       resolveRef.current(false)
       resolveRef.current = null
     }
-    setConfirmState(prev => ({ ...prev, isOpen: false }))
+    setConfirmState({ isOpen: false, title: '', message: '' })
   }
 
   const setLoading = (loading) => {
@@ -104,16 +91,6 @@ export const useSimpleConfirm = () => {
     })
   }
 
-  const confirmDeleteAll = (count, itemType = 'elementos') => {
-    return showConfirm({
-      title: 'Eliminar Todo',
-      message: `¿Estás seguro de que deseas eliminar TODOS los ${count} ${itemType}? Esta acción no se puede deshacer.`,
-      type: 'danger',
-      confirmText: 'Sí, eliminar todo',
-      cancelText: 'Cancelar'
-    })
-  }
-
   const ConfirmDialogComponent = () => React.createElement(ConfirmDialog, {
     isOpen: confirmState.isOpen,
     onClose: handleCancel,
@@ -129,7 +106,6 @@ export const useSimpleConfirm = () => {
   return {
     confirm,
     confirmDelete,
-    confirmDeleteAll,
     ConfirmDialog: ConfirmDialogComponent
   }
 }

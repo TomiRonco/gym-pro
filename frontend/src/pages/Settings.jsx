@@ -114,8 +114,7 @@ const GymInfoSettings = ({ loading, setLoading, success, error }) => {
       setLoading(true)
       const data = await settingsService.getGymSettings()
       setGymData(data)
-    } catch (err) {
-      console.error('Error loading gym settings:', err)
+    } catch {
       error('Error al Cargar', 'No se pudieron cargar los datos del gimnasio')
     } finally {
       setLoading(false)
@@ -128,8 +127,7 @@ const GymInfoSettings = ({ loading, setLoading, success, error }) => {
       setLoading(true)
       await settingsService.updateGymSettings(gymData)
       success('Configuración Actualizada', 'Los datos del gimnasio se han guardado exitosamente')
-    } catch (err) {
-      console.error('Error updating gym settings:', err)
+    } catch {
       error('Error al Guardar', 'No se pudieron actualizar los datos del gimnasio')
     } finally {
       setLoading(false)
@@ -341,8 +339,7 @@ const ScheduleSettings = () => {
       setLoading(true)
       const data = await settingsService.getSchedules()
       setSchedules(data)
-    } catch (err) {
-      console.error('Error loading schedules:', err)
+    } catch {
       error('Error de Conexión', 'No se pudieron cargar los horarios. Verifique su conexión a internet')
     } finally {
       setLoading(false)
@@ -366,7 +363,6 @@ const ScheduleSettings = () => {
       
       handleCloseModal()
     } catch (err) {
-      console.error('Error saving schedule:', err)
       const action = editingSchedule ? 'actualizar' : 'crear'
       error('Error de Validación', err.message || `No se pudo ${action} el horario. Verifique los datos ingresados`)
     } finally {
@@ -388,11 +384,9 @@ const ScheduleSettings = () => {
   }
 
   const handleDelete = async (scheduleId) => {
-    console.log('handleDelete called with:', scheduleId)
     const scheduleToDelete = schedules.find(s => s.id === scheduleId)
     const scheduleName = scheduleToDelete ? scheduleToDelete.name : 'este horario'
     
-    console.log('Showing confirmation dialog...')
     const confirmed = await confirm({
       title: 'Eliminar Horario',
       message: `¿Estás seguro de que deseas eliminar "${scheduleName}"?`,
@@ -401,44 +395,15 @@ const ScheduleSettings = () => {
       cancelText: 'Cancelar'
     })
     
-    console.log('Confirmation result:', confirmed)
     if (!confirmed) return
 
     try {
       setLoading(true)
-      console.log('Calling settingsService.deleteSchedule...')
       await settingsService.deleteSchedule(scheduleId)
       setSchedules(prev => prev.filter(s => s.id !== scheduleId))
       success('Horario Eliminado', `"${scheduleName}" ha sido eliminado del sistema`)
-    } catch (err) {
-      console.error('Error deleting schedule:', err)
+    } catch (error) {
       error('Error al Eliminar', `No se pudo eliminar "${scheduleName}". Intente nuevamente`)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleClearAllSchedules = async () => {
-    const scheduleCount = schedules.length
-    
-    const confirmed = await confirm({
-      title: 'Eliminar Todos los Horarios',
-      message: `¿Estás seguro de que deseas eliminar TODOS los ${scheduleCount} horarios? Esta acción no se puede deshacer.`,
-      type: 'danger',
-      confirmText: 'Eliminar Todo',
-      cancelText: 'Cancelar'
-    })
-    
-    if (!confirmed) return
-
-    try {
-      setLoading(true)
-      await settingsService.clearAllSchedules()
-      setSchedules([])
-      success('Limpieza Completa', `Se eliminaron exitosamente ${scheduleCount} horarios del sistema`)
-    } catch (err) {
-      console.error('Error clearing schedules:', err)
-      error('Error al Limpiar', 'No se pudieron eliminar todos los horarios. Algunos pueden permanecer')
     } finally {
       setLoading(false)
     }
@@ -474,13 +439,6 @@ const ScheduleSettings = () => {
           <p className="text-gray-600">Configura los horarios de atención por día</p>
         </div>
         <div className="flex space-x-3">
-          <button
-            onClick={handleClearAllSchedules}
-            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center"
-          >
-            <Trash2 size={20} className="mr-2" />
-            Limpiar Todo
-          </button>
           <button
             onClick={() => setShowModal(true)}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"

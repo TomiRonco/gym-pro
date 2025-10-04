@@ -64,39 +64,7 @@ def update_gym_settings(
 def get_schedules(db: Session = Depends(get_db)):
     """Obtener todos los horarios"""
     schedules = db.query(models.Schedule).order_by(models.Schedule.day_of_week, models.Schedule.opening_time).all()
-    
-    # Si no hay horarios, crear horarios por defecto
-    if not schedules:
-        default_schedules = []
-        days = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
-        
-        for i in range(7):
-            if i < 6:  # Lunes a Sábado
-                schedule = models.Schedule(
-                    day_of_week=i,
-                    name="Horario Principal",
-                    opening_time="06:00",
-                    closing_time="22:00",
-                    is_open=True,
-                    notes=f"Horario estándar {days[i]}"
-                )
-            else:  # Domingo
-                schedule = models.Schedule(
-                    day_of_week=i,
-                    name="Horario Principal",
-                    opening_time="08:00",
-                    closing_time="20:00",
-                    is_open=True,
-                    notes=f"Horario {days[i]}"
-                )
-            
-            db.add(schedule)
-            default_schedules.append(schedule)
-        
-        db.commit()
-        for schedule in default_schedules:
-            db.refresh(schedule)
-        return default_schedules
+    return schedules
     
     return schedules
 

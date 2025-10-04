@@ -36,12 +36,9 @@ api.interceptors.response.use(
 // Servicios de Autenticación
 export const authService = {
   async login(username, password) {
-    console.log('🌐 API Service: Enviando login para', username, 'a', API_BASE_URL);
     const formData = new FormData();
     formData.append('username', username);
     formData.append('password', password);
-    
-    console.log('📤 Enviando FormData a /auth/token');
     
     const response = await api.post('/auth/token', formData, {
       headers: {
@@ -49,11 +46,8 @@ export const authService = {
       },
     });
     
-    console.log('📥 Respuesta recibida:', response.data);
-    
     const { access_token } = response.data;
     localStorage.setItem('access_token', access_token);
-    console.log('💾 Token guardado en localStorage');
     return response.data;
   },
 

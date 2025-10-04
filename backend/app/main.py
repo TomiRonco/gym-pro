@@ -20,16 +20,12 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",  # Frontend React local (puerto por defecto)
-        "http://localhost:3001",  # Frontend React local (puerto alternativo)
-        "http://localhost:5173",  # Frontend Vite local
+        "http://localhost:3000",
+        "http://localhost:3001", 
+        "http://localhost:5173",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:3001",
-        "http://127.0.0.1:5173",
-        "https://localhost:3000",
-        "https://localhost:3001",
-        "https://localhost:5173",
-        # Agregar aquí otros dominios en producción
+        "http://127.0.0.1:5173"
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],

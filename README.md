@@ -97,16 +97,17 @@ cd frontend
 npm run dev
 ```
 
-## 🔐 Credenciales por Defecto
+## 🔐 Acceso Inicial
 
-- **Email**: admin@gym.com
-- **Password**: admin123
+Para acceder al sistema por primera vez:
+1. Ejecuta el script de inicialización de la base de datos (si es necesario)
+2. Usa las credenciales de administrador configuradas durante la instalación
 
 ## 📊 API Endpoints
 
 La documentación completa de la API está disponible en:
-- **Swagger UI**: http://localhost:8001/docs
-- **ReDoc**: http://localhost:8001/redoc
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
 
 ### Principales Endpoints:
 - `POST /api/auth/login` - Autenticación
