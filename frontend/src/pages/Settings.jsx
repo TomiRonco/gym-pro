@@ -388,9 +388,11 @@ const ScheduleSettings = () => {
   }
 
   const handleDelete = async (scheduleId) => {
+    console.log('handleDelete called with:', scheduleId)
     const scheduleToDelete = schedules.find(s => s.id === scheduleId)
     const scheduleName = scheduleToDelete ? scheduleToDelete.name : 'este horario'
     
+    console.log('Showing confirmation dialog...')
     const confirmed = await confirm({
       title: 'Eliminar Horario',
       message: `¿Estás seguro de que deseas eliminar "${scheduleName}"?`,
@@ -399,10 +401,12 @@ const ScheduleSettings = () => {
       cancelText: 'Cancelar'
     })
     
+    console.log('Confirmation result:', confirmed)
     if (!confirmed) return
 
     try {
       setLoading(true)
+      console.log('Calling settingsService.deleteSchedule...')
       await settingsService.deleteSchedule(scheduleId)
       setSchedules(prev => prev.filter(s => s.id !== scheduleId))
       success('Horario Eliminado', `"${scheduleName}" ha sido eliminado del sistema`)

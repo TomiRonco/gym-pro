@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import React from 'react'
 import ConfirmDialog from '../components/ConfirmDialog'
 
@@ -13,7 +13,7 @@ export const useConfirm = () => {
     loading: false
   })
   
-  let resolveRef = null
+  const resolveRef = useRef(null)
 
   const showConfirm = ({
     title,
@@ -22,8 +22,10 @@ export const useConfirm = () => {
     cancelText = 'Cancelar',
     type = 'warning'
   }) => {
+    console.log('showConfirm called with:', { title, message, type })
     return new Promise((resolve) => {
-      resolveRef = resolve
+      resolveRef.current = resolve
+      console.log('Setting confirmState, resolveRef set:', !!resolveRef.current)
       setConfirmState({
         isOpen: true,
         title,
@@ -37,17 +39,19 @@ export const useConfirm = () => {
   }
 
   const handleConfirm = () => {
-    if (resolveRef) {
-      resolveRef(true)
-      resolveRef = null
+    console.log('handleConfirm called, resolveRef:', !!resolveRef.current)
+    if (resolveRef.current) {
+      resolveRef.current(true)
+      resolveRef.current = null
     }
     setConfirmState(prev => ({ ...prev, isOpen: false }))
   }
 
   const handleCancel = () => {
-    if (resolveRef) {
-      resolveRef(false)
-      resolveRef = null
+    console.log('handleCancel called, resolveRef:', !!resolveRef.current)
+    if (resolveRef.current) {
+      resolveRef.current(false)
+      resolveRef.current = null
     }
     setConfirmState(prev => ({ ...prev, isOpen: false }))
   }

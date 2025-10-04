@@ -56,8 +56,9 @@ const ConfirmDialog = ({
   }
 
   const handleConfirm = () => {
-    onConfirm()
-    onClose()
+    if (onConfirm) {
+      onConfirm()
+    }
   }
 
   return (
