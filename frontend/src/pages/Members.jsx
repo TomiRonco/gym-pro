@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { membersService } from '../services/api'
 import { useNotification } from '../context/NotificationContext'
+import { useActivity } from '../context/ActivityContext'
 
 // Componente para el modal de edición
 const MemberEditModal = ({ member, onClose, onSave, membershipTypes }) => {
@@ -431,6 +432,7 @@ const Members = () => {
   const [editingMember, setEditingMember] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const { success, error } = useNotification()
+  const { addMemberActivity } = useActivity()
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -585,6 +587,10 @@ const Members = () => {
       setShowModal(false)
       setFormErrors({})
       await loadMembers()
+      
+      // Registrar actividad de nuevo socio
+      addMemberActivity(`${formData.first_name} ${formData.last_name}`)
+      
       success('Socio creado exitosamente', 'El nuevo socio ha sido registrado correctamente')
       
     } catch (err) {

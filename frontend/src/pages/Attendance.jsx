@@ -1,7 +1,32 @@
-import React from 'react'
-import { UserCheck, Clock, CheckCircle } from 'lucide-react'
+import React, { useState } from 'react'
+import { UserCheck, Clock, CheckCircle, X } from 'lucide-react'
+import { useActivity } from '../context/ActivityContext'
+import { useNotification } from '../context/NotificationContext'
 
 const Attendance = () => {
+  const [showModal, setShowModal] = useState(false)
+  const [memberName, setMemberName] = useState('')
+  const { addCheckinActivity } = useActivity()
+  const { addNotification } = useNotification()
+
+  const handleCheckin = (e) => {
+    e.preventDefault()
+    
+    if (!memberName.trim()) {
+      addNotification('Por favor ingresa el nombre del socio', 'error')
+      return
+    }
+    
+    // Agregar actividad de check-in
+    addCheckinActivity(memberName.trim())
+    
+    // Mostrar notificación de éxito
+    addNotification(`Check-in registrado para ${memberName}`, 'success')
+    
+    // Resetear formulario y cerrar modal
+    setMemberName('')
+    setShowModal(false)
+  }
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
@@ -9,7 +34,10 @@ const Attendance = () => {
           <h1 className="text-3xl font-bold text-gray-900">Asistencia</h1>
           <p className="mt-2 text-gray-600">Control de asistencia y check-in</p>
         </div>
-        <button className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium flex items-center space-x-2 transition-colors">
+        <button 
+          onClick={() => setShowModal(true)}
+          className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium flex items-center space-x-2 transition-colors"
+        >
           <UserCheck size={20} />
           <span>Marcar Asistencia</span>
         </button>
@@ -64,6 +92,57 @@ const Attendance = () => {
           <p className="text-gray-600">Esta funcionalidad estará disponible próximamente</p>
         </div>
       </div>
+
+      {/* Modal para marcar asistencia */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Marcar Asistencia</h3>
+              <button
+                onClick={() => setShowModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleCheckin} className="p-6 space-y-4">
+              <div>
+                <label htmlFor="memberName" className="block text-sm font-medium text-gray-700 mb-1">
+                  Nombre del Socio
+                </label>
+                <input
+                  type="text"
+                  id="memberName"
+                  value={memberName}
+                  onChange={(e) => setMemberName(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Nombre completo del socio"
+                  autoFocus
+                />
+              </div>
+              
+              <div className="flex space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  Registrar Check-in
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

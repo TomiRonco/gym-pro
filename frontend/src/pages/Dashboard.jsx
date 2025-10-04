@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { authenticatedFetch } from '../config/api'
 import { useNotification } from '../context/NotificationContext'
+import { useActivity } from '../context/ActivityContext'
 
 const Dashboard = ({ onPageChange }) => {
   const [stats, setStats] = useState({
@@ -25,8 +26,8 @@ const Dashboard = ({ onPageChange }) => {
   const [loading, setLoading] = useState(true)
   const [showMemberModal, setShowMemberModal] = useState(false)
   const [selectedMember, setSelectedMember] = useState(null)
-  const [recentActivity, setRecentActivity] = useState([])
   const { success, error } = useNotification()
+  const { recentActivity, addQuickCheckinActivity } = useActivity()
 
   // Cargar estadísticas reales
   const loadStats = async () => {
@@ -104,47 +105,6 @@ const Dashboard = ({ onPageChange }) => {
     }
   }
 
-  // Función para cargar actividad reciente
-  const loadRecentActivity = async () => {
-    try {
-      // Simular actividad reciente - en el futuro se puede conectar con API
-      const mockActivity = [
-        {
-          id: 1,
-          type: 'checkin',
-          member: 'Juan Pérez',
-          timestamp: new Date(Date.now() - 1000 * 60 * 15), // 15 minutos atrás
-          description: 'Check-in en el gimnasio'
-        },
-        {
-          id: 2,
-          type: 'payment',
-          member: 'María García',
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 horas atrás
-          description: 'Pago de membresía mensual - $50'
-        },
-        {
-          id: 3,
-          type: 'new_member',
-          member: 'Carlos López',
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 6), // 6 horas atrás
-          description: 'Nuevo socio registrado'
-        },
-        {
-          id: 4,
-          type: 'checkin',
-          member: 'Ana Martínez',
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 8), // 8 horas atrás
-          description: 'Check-in en el gimnasio'
-        }
-      ]
-      
-      setRecentActivity(mockActivity)
-    } catch (error) {
-      console.error('Error loading recent activity:', error)
-    }
-  }
-
   // Función para ver detalles del socio
   const handleViewMember = (member) => {
     setSelectedMember(member)
@@ -154,16 +114,7 @@ const Dashboard = ({ onPageChange }) => {
   // Función para registrar check-in
   const handleQuickCheckin = async () => {
     try {
-      // Simular check-in rápido
-      const newActivity = {
-        id: Date.now(),
-        type: 'checkin',
-        member: 'Check-in rápido',
-        timestamp: new Date(),
-        description: 'Check-in desde dashboard'
-      }
-      
-      setRecentActivity(prev => [newActivity, ...prev.slice(0, 9)]) // Mantener últimos 10
+      addQuickCheckinActivity()
       success('Check-in registrado', 'Se ha registrado la entrada al gimnasio')
     } catch {
       error('Error en check-in', 'No se pudo registrar la entrada')
@@ -172,7 +123,6 @@ const Dashboard = ({ onPageChange }) => {
 
   useEffect(() => {
     loadStats()
-    loadRecentActivity()
   }, [])
 
   const StatCard = ({ title, value, icon: Icon, color, description, onClick }) => (

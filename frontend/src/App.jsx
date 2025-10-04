@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { NotificationProvider } from './context/NotificationContext'
+import { ActivityProvider } from './context/ActivityContext'
 import Login from './pages/Login'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
@@ -67,7 +68,9 @@ function App() {
   return (
     <NotificationProvider>
       <AuthProvider>
-        <AppContent />
+        <ActivityProvider>
+          <AppContent />
+        </ActivityProvider>
       </AuthProvider>
     </NotificationProvider>
   )
