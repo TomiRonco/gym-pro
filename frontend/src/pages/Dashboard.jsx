@@ -7,7 +7,8 @@ import {
   TrendingUp,
   Calendar,
   Plus,
-  Eye
+  Eye,
+  Clock
 } from 'lucide-react'
 import { authenticatedFetch } from '../config/api'
 import { useNotification } from '../context/NotificationContext'
@@ -261,27 +262,40 @@ const Dashboard = ({ onPageChange }) => {
       {/* Recent Activity */}
       <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Actividad Reciente</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">Actividad Reciente</h3>
+            <Clock className="h-5 w-5 text-gray-400" />
+          </div>
         </div>
         <div className="p-6">
-          <div className="space-y-4">
-            {[
-              { type: 'payment', text: 'Pago recibido de Juan Pérez - $5,000', time: 'Hace 1 hora' },
-              { type: 'checkin', text: 'Ana García registró asistencia', time: 'Hace 2 horas' },
-              { type: 'member', text: 'Nuevo socio: Carlos Rodríguez', time: 'Hace 3 horas' },
-            ].map((activity, index) => (
-              <div key={index} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50">
-                <div className={`w-2 h-2 rounded-full ${
-                  activity.type === 'payment' ? 'bg-green-500' :
-                  activity.type === 'checkin' ? 'bg-blue-500' : 'bg-purple-500'
-                }`}></div>
-                <div className="flex-1">
-                  <p className="text-gray-900">{activity.text}</p>
-                  <p className="text-sm text-gray-500">{activity.time}</p>
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="text-gray-500 mt-2">Cargando actividad...</p>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Clock className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <h4 className="text-lg font-medium text-gray-900 mb-2">Sin actividad reciente</h4>
+              <p className="text-gray-500 mb-6">
+                La actividad aparecerá aquí cuando haya movimientos en el gimnasio
+              </p>
+              <div className="space-y-3 text-sm text-gray-400">
+                <div className="flex items-center justify-center space-x-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                  <span>Pagos recibidos</span>
+                </div>
+                <div className="flex items-center justify-center space-x-2">
+                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                  <span>Check-ins de socios</span>
+                </div>
+                <div className="flex items-center justify-center space-x-2">
+                  <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                  <span>Nuevos socios</span>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { NotificationProvider } from './context/NotificationContext'
 import Login from './components/Login'
@@ -12,7 +12,23 @@ function AppContent() {
   const [currentPage, setCurrentPage] = useState('dashboard')
   const { isAuthenticated } = useAuth()
 
+  // Cambiar título de la pestaña según la sección
+  useEffect(() => {
+    const pageTitles = {
+      'dashboard': 'Dashboard - Gym Pro',
+      'members': 'Socios - Gym Pro',
+      'payments': 'Pagos - Gym Pro',
+      'attendance': 'Asistencia - Gym Pro',
+      'settings': 'Configuración - Gym Pro'
+    }
+
+    const title = pageTitles[currentPage] || 'Gym Pro'
+    document.title = title
+  }, [currentPage])
+
   if (!isAuthenticated()) {
+    // Título para login
+    document.title = 'Iniciar Sesión - Gym Pro'
     return <Login />
   }
 
