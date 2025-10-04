@@ -183,3 +183,96 @@ class MembershipTypeStats(BaseModel):
     membership_type: str
     count: int
     percentage: float
+
+# Esquemas para configuración del gimnasio
+class GymSettingsBase(BaseModel):
+    gym_name: str
+    address: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    website: Optional[str] = None
+    instagram: Optional[str] = None
+    facebook: Optional[str] = None
+    whatsapp: Optional[str] = None
+    description: Optional[str] = None
+    logo_url: Optional[str] = None
+
+class GymSettingsCreate(GymSettingsBase):
+    pass
+
+class GymSettingsUpdate(BaseModel):
+    gym_name: Optional[str] = None
+    address: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    website: Optional[str] = None
+    instagram: Optional[str] = None
+    facebook: Optional[str] = None
+    whatsapp: Optional[str] = None
+    description: Optional[str] = None
+    logo_url: Optional[str] = None
+
+class GymSettings(GymSettingsBase):
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
+
+# Esquemas para horarios
+class ScheduleBase(BaseModel):
+    day_of_week: int  # 0=Lunes, 1=Martes, ..., 6=Domingo
+    opening_time: str  # Formato HH:MM
+    closing_time: str  # Formato HH:MM
+    is_open: bool = True
+    notes: Optional[str] = None
+
+class ScheduleCreate(ScheduleBase):
+    pass
+
+class ScheduleUpdate(BaseModel):
+    opening_time: Optional[str] = None
+    closing_time: Optional[str] = None
+    is_open: Optional[bool] = None
+    notes: Optional[str] = None
+
+class Schedule(ScheduleBase):
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
+
+# Esquemas para planes de membresía
+class MembershipPlanBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    price: Decimal
+    duration_days: int
+    is_active: bool = True
+    features: Optional[str] = None
+    max_visits_per_month: Optional[int] = None
+    plan_type: str = "monthly"
+
+class MembershipPlanCreate(MembershipPlanBase):
+    pass
+
+class MembershipPlanUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    price: Optional[Decimal] = None
+    duration_days: Optional[int] = None
+    is_active: Optional[bool] = None
+    features: Optional[str] = None
+    max_visits_per_month: Optional[int] = None
+    plan_type: Optional[str] = None
+
+class MembershipPlan(MembershipPlanBase):
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True

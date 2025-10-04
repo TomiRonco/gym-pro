@@ -83,3 +83,50 @@ class Attendance(Base):
     
     # Relaciones
     member = relationship("Member", back_populates="attendance_records")
+
+class GymSettings(Base):
+    """Modelo para configuración general del gimnasio"""
+    __tablename__ = "gym_settings"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    gym_name = Column(String(100), nullable=False, default="Mi Gimnasio")
+    address = Column(Text)
+    phone = Column(String(20))
+    email = Column(String(100))
+    website = Column(String(200))
+    instagram = Column(String(100))
+    facebook = Column(String(100))
+    whatsapp = Column(String(20))
+    description = Column(Text)
+    logo_url = Column(String(500))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+class Schedule(Base):
+    """Modelo para horarios del gimnasio"""
+    __tablename__ = "schedules"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    day_of_week = Column(Integer, nullable=False)  # 0=Lunes, 1=Martes, ..., 6=Domingo
+    opening_time = Column(String(5), nullable=False)  # Formato HH:MM
+    closing_time = Column(String(5), nullable=False)  # Formato HH:MM
+    is_open = Column(Boolean, default=True)
+    notes = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+class MembershipPlan(Base):
+    """Modelo para planes de membresía"""
+    __tablename__ = "membership_plans"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    description = Column(Text)
+    price = Column(Numeric(10, 2), nullable=False)
+    duration_days = Column(Integer, nullable=False)  # Duración en días
+    is_active = Column(Boolean, default=True)
+    features = Column(Text)  # JSON string con las características del plan
+    max_visits_per_month = Column(Integer, nullable=True)  # Límite de visitas mensuales
+    plan_type = Column(String(20), nullable=False, default="monthly")  # monthly, quarterly, annual, daily
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())

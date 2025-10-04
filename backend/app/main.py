@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import members, payments, attendance, auth, dashboard
+from app.routers import members, payments, attendance, auth, dashboard, settings
 from app.database import engine
 from app import models
 import os
@@ -42,6 +42,7 @@ app.include_router(members.router, prefix="/api/members", tags=["👥 Members"])
 app.include_router(payments.router, prefix="/api/payments", tags=["💰 Payments"])
 app.include_router(attendance.router, prefix="/api/attendance", tags=["📅 Attendance"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["📊 Dashboard"])
+app.include_router(settings.router, tags=["⚙️ Settings"])
 
 @app.get("/")
 async def root():
@@ -56,7 +57,8 @@ async def root():
             "members": "/api/members", 
             "payments": "/api/payments",
             "attendance": "/api/attendance",
-            "dashboard": "/api/dashboard"
+            "dashboard": "/api/dashboard",
+            "settings": "/api/settings"
         }
     }
 

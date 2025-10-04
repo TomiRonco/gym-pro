@@ -12,14 +12,13 @@ import { useNotification } from '../context/NotificationContext'
 
 const Layout = ({ children, currentPage, onPageChange }) => {
   const { user, logout } = useAuth()
-  const { success, warning } = useNotification()
+  const { success } = useNotification()
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'members', label: 'Socios', icon: Users },
     { id: 'payments', label: 'Pagos', icon: CreditCard },
     { id: 'attendance', label: 'Asistencia', icon: UserCheck },
-    { id: 'settings', label: 'Configuración', icon: Settings },
   ]
 
   const handleLogout = () => {
@@ -70,6 +69,19 @@ const Layout = ({ children, currentPage, onPageChange }) => {
         {/* User Info & Logout */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-white">
           <div className="space-y-3">
+            {/* Settings Button */}
+            <button
+              onClick={() => onPageChange('settings')}
+              className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors ${
+                currentPage === 'settings'
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <Settings size={20} />
+              <span className="ml-3 font-medium">Configuración</span>
+            </button>
+            
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                 <span className="text-blue-600 font-semibold text-sm">
