@@ -44,9 +44,9 @@ class MemberBase(BaseModel):
     birth_date: Optional[date] = None
     emergency_contact_name: Optional[str] = None
     emergency_contact_phone: Optional[str] = None
-    membership_type: str
+    membership_plan_id: int
     membership_start_date: date
-    membership_end_date: date
+    membership_end_date: date  # Se calcula automáticamente (start_date + 1 mes)
     trainer_id: Optional[int] = None
     notes: Optional[str] = None
 
@@ -61,9 +61,9 @@ class MemberCreate(BaseModel):
     birth_date: Optional[date] = None
     emergency_contact_name: Optional[str] = None
     emergency_contact_phone: Optional[str] = None
-    membership_type: str
+    membership_plan_id: int
     membership_start_date: date
-    membership_end_date: date
+    # membership_end_date se calcula automáticamente
     trainer_id: Optional[int] = None
     notes: Optional[str] = None
 
@@ -78,7 +78,7 @@ class MemberUpdate(BaseModel):
     birth_date: Optional[date] = None
     emergency_contact_name: Optional[str] = None
     emergency_contact_phone: Optional[str] = None
-    membership_type: Optional[str] = None
+    membership_plan_id: Optional[int] = None
     membership_start_date: Optional[date] = None
     membership_end_date: Optional[date] = None
     trainer_id: Optional[int] = None
@@ -252,11 +252,9 @@ class MembershipPlanBase(BaseModel):
     name: str
     description: Optional[str] = None
     price: Decimal
-    duration_days: int
+    days_per_week: int  # Días por semana (1-7)
     is_active: bool = True
     features: Optional[str] = None
-    max_visits_per_month: Optional[int] = None
-    plan_type: str = "monthly"
 
 class MembershipPlanCreate(MembershipPlanBase):
     pass
@@ -265,11 +263,9 @@ class MembershipPlanUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     price: Optional[Decimal] = None
-    duration_days: Optional[int] = None
+    days_per_week: Optional[int] = None
     is_active: Optional[bool] = None
     features: Optional[str] = None
-    max_visits_per_month: Optional[int] = None
-    plan_type: Optional[str] = None
 
 class MembershipPlan(MembershipPlanBase):
     id: int

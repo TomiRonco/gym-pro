@@ -146,9 +146,9 @@ const Dashboard = ({ onPageChange }) => {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Vista general del gimnasio</p>
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white mb-8 shadow-lg">
+        <h1 className="text-3xl font-bold text-white">Dashboard</h1>
+        <p className="mt-2 text-lg text-blue-100">Vista general del gimnasio</p>
       </div>
 
       {/* Stats Grid */}

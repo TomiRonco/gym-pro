@@ -18,9 +18,16 @@ import {
   MessageCircle,
   Calendar,
   ChevronDown,
-  Check
+  Check,
+  Edit3,
+  DollarSign,
+  Users,
+  CheckCircle,
+  XCircle,
+  Star
 } from 'lucide-react'
 import { settingsService } from '../services/settingsService'
+import { membershipService } from '../services/membershipService'
 import { useNotification } from '../context/NotificationContext'
 import { useSimpleConfirm } from '../hooks/useConfirm'
 
@@ -50,27 +57,27 @@ const SettingsPage = () => {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-          <Settings className="w-8 h-8 mr-3 text-blue-600" />
+      <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 rounded-xl p-6 text-white mb-8 shadow-lg">
+        <h1 className="text-3xl font-bold text-white flex items-center">
+          <Settings className="w-8 h-8 mr-3" />
           Configuración
         </h1>
-        <p className="mt-2 text-gray-600">Gestiona la configuración del gimnasio, horarios y planes</p>
+        <p className="mt-2 text-lg text-indigo-100">Gestiona la configuración del gimnasio, horarios y planes</p>
       </div>
 
       {/* Tabs */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
-        <div className="border-b border-gray-200">
-          <nav className="flex">
+        <div className="p-6 border-b border-gray-200">
+          <nav className="flex space-x-1">
             {tabs.map((tab) => {
               const Icon = tab.icon
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center px-6 py-4 text-sm font-medium transition-colors ${
+                  className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                     activeTab === tab.id
-                      ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                      ? 'bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-200'
                       : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                   }`}
                 >
@@ -150,7 +157,17 @@ const GymInfoSettings = ({ loading, setLoading, success, error }) => {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="space-y-6">
+      {/* Header de la sección */}
+      <div className="border-b border-gray-200 pb-4">
+        <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+          <Building size={24} className="mr-3 text-indigo-600" />
+          Información del Gimnasio
+        </h2>
+        <p className="mt-2 text-gray-600">Configura los datos básicos y de contacto de tu gimnasio</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Información básica */}
         <div className="space-y-4">
@@ -304,7 +321,8 @@ const GymInfoSettings = ({ loading, setLoading, success, error }) => {
           <span>{loading ? 'Guardando...' : 'Guardar Cambios'}</span>
         </button>
       </div>
-    </form>
+      </form>
+    </div>
   )
 }
 
@@ -432,19 +450,22 @@ const ScheduleSettings = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h3 className="text-lg font-medium text-gray-900">Horarios del Gimnasio</h3>
-          <p className="text-gray-600">Configura los horarios de atención por día</p>
-        </div>
-        <div className="flex space-x-3">
+      {/* Header de la sección */}
+      <div className="border-b border-gray-200 pb-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+              <Clock size={24} className="mr-3 text-indigo-600" />
+              Horarios del Gimnasio
+            </h2>
+            <p className="mt-2 text-gray-600">Configura los horarios de atención por día de la semana</p>
+          </div>
           <button
             onClick={() => setShowModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center space-x-2 transition-colors shadow-md min-w-[140px] justify-center"
           >
-            <Plus size={20} className="mr-2" />
-            Agregar Horario
+            <Plus size={20} />
+            <span>Agregar Horario</span>
           </button>
         </div>
       </div>
@@ -644,13 +665,408 @@ const ScheduleSettings = () => {
   )
 }
 
-// Componente placeholder para planes
+// Componente para gestión de planes de membresía
 const MembershipPlansSettings = () => {
+  const [plans, setPlans] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [showModal, setShowModal] = useState(false)
+  const [editingPlan, setEditingPlan] = useState(null)
+
+  const { success, error } = useNotification()
+  const { confirm, ConfirmDialog } = useSimpleConfirm()
+
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    price: '',
+    days_per_week: 1,
+    features: '',
+    is_active: true
+  })
+
+  const weeklyOptions = [
+    { value: 1, label: '1 día por semana', description: 'Ideal para principiantes' },
+    { value: 2, label: '2 días por semana', description: 'Rutina básica de ejercicio' },
+    { value: 3, label: '3 días por semana', description: 'Entrenamiento balanceado' },
+    { value: 4, label: '4 días por semana', description: 'Entrenamiento intensivo' },
+    { value: 5, label: '5 días por semana', description: 'Para deportistas' },
+    { value: 6, label: '6 días por semana', description: 'Entrenamiento avanzado' },
+    { value: 7, label: '7 días por semana', description: 'Acceso libre completo' }
+  ]
+
+  const loadPlans = async () => {
+    try {
+      setLoading(true)
+      const data = await membershipService.getPlans()
+      setPlans(data)
+    } catch {
+      error('Error al Cargar', 'No se pudieron cargar los planes de membresía')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadPlans()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      price: '',
+      days_per_week: 1,
+      features: '',
+      is_active: true
+    })
+    setEditingPlan(null)
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+
+    try {
+      const planData = {
+        ...formData,
+        price: parseFloat(formData.price)
+      }
+
+      if (editingPlan) {
+        await membershipService.updatePlan(editingPlan.id, planData)
+        success('Plan Actualizado', 'El plan de membresía se ha actualizado exitosamente')
+      } else {
+        await membershipService.createPlan(planData)
+        success('Plan Creado', 'El nuevo plan de membresía se ha creado exitosamente')
+      }
+
+      setShowModal(false)
+      resetForm()
+      await loadPlans()
+    } catch {
+      error('Error', editingPlan ? 'Error al actualizar el plan' : 'Error al crear el plan')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleEdit = (plan) => {
+    setEditingPlan(plan)
+    setFormData({
+      name: plan.name,
+      description: plan.description || '',
+      price: plan.price.toString(),
+      days_per_week: plan.days_per_week,
+      features: plan.features || '',
+      is_active: plan.is_active
+    })
+    setShowModal(true)
+  }
+
+  const handleDelete = async (plan) => {
+    const confirmed = await confirm(
+      `¿Estás seguro de que quieres eliminar el plan "${plan.name}"?`,
+      'Esta acción no se puede deshacer.'
+    )
+
+    if (confirmed) {
+      try {
+        setLoading(true)
+        await membershipService.deletePlan(plan.id)
+        success('Plan Eliminado', 'El plan de membresía se ha eliminado exitosamente')
+        await loadPlans()
+      } catch {
+        error('Error', 'Error al eliminar el plan')
+      } finally {
+        setLoading(false)
+      }
+    }
+  }
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: 'ARS'
+    }).format(price)
+  }
+
   return (
-    <div className="text-center py-8">
-      <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-      <h3 className="text-lg font-medium text-gray-900 mb-2">Planes de Membresía</h3>
-      <p className="text-gray-600">Esta funcionalidad estará disponible próximamente</p>
+    <div className="space-y-6">
+      {/* Header de la sección */}
+      <div className="border-b border-gray-200 pb-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+              <Star size={24} className="mr-3 text-indigo-600" />
+              Planes de Membresía
+            </h2>
+            <p className="mt-2 text-gray-600">Gestiona los planes y precios de las membresías del gimnasio</p>
+          </div>
+          <button
+            onClick={() => {
+              resetForm()
+              setShowModal(true)
+            }}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center space-x-2 transition-colors shadow-md min-w-[140px] justify-center"
+          >
+            <Plus size={20} />
+            <span>Nuevo Plan</span>
+          </button>
+        </div>
+      </div>
+      {/* Lista de Planes */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {loading && plans.length === 0 ? (
+          // Skeleton loading
+          Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 animate-pulse">
+              <div className="h-6 bg-gray-200 rounded mb-3"></div>
+              <div className="h-4 bg-gray-200 rounded mb-6"></div>
+              <div className="h-8 bg-gray-200 rounded mb-4"></div>
+              <div className="space-y-2 mb-4">
+                <div className="h-3 bg-gray-200 rounded"></div>
+                <div className="h-3 bg-gray-200 rounded"></div>
+              </div>
+            </div>
+          ))
+        ) : plans.length === 0 ? (
+          <div className="col-span-full text-center py-12">
+            <Star className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No hay planes disponibles</h3>
+            <p className="text-gray-600 mb-4">Comienza creando tu primer plan de membresía</p>
+            <button
+              onClick={() => {
+                resetForm()
+                setShowModal(true)
+              }}
+              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Crear Plan
+            </button>
+          </div>
+        ) : (
+          plans.map((plan) => (
+            <div key={plan.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+              {/* Header de la tarjeta */}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">{plan.name}</h3>
+                  <p className="text-sm text-gray-600">{plan.description}</p>
+                </div>
+                <div className="flex items-center space-x-2 ml-4">
+                  {plan.is_active ? (
+                    <CheckCircle className="w-5 h-5 text-green-500" title="Activo" />
+                  ) : (
+                    <XCircle className="w-5 h-5 text-red-500" title="Inactivo" />
+                  )}
+                </div>
+              </div>
+
+              {/* Precio */}
+              <div className="text-2xl font-bold text-blue-600 mb-4">
+                {formatPrice(plan.price)}
+              </div>
+
+              {/* Detalles */}
+              <div className="space-y-2 text-sm text-gray-600 mb-4">
+                <div className="flex items-center">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  {plan.days_per_week} {plan.days_per_week === 1 ? 'día' : 'días'} por semana
+                </div>
+                
+                <div className="flex items-center">
+                  <Clock className="w-4 h-4 mr-2" />
+                  Vencimiento: 1 mes desde el inicio
+                </div>
+              </div>
+
+              {/* Características */}
+              {plan.features && (
+                <div className="mb-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Características:</h4>
+                  <div className="text-sm text-gray-600">
+                    {(() => {
+                      try {
+                        const features = JSON.parse(plan.features)
+                        return (
+                          <ul className="space-y-1">
+                            {features.map((feature, index) => (
+                              <li key={index} className="flex items-start">
+                                <span className="text-green-500 mr-2">•</span>
+                                {feature}
+                              </li>
+                            ))}
+                          </ul>
+                        )
+                      } catch {
+                        return <span>{plan.features}</span>
+                      }
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {/* Acciones */}
+              <div className="flex space-x-2 pt-4 border-t border-gray-100">
+                <button
+                  onClick={() => handleEdit(plan)}
+                  className="flex-1 flex items-center justify-center px-3 py-2 text-sm bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
+                >
+                  <Edit3 className="w-4 h-4 mr-1" />
+                  Editar
+                </button>
+                <button
+                  onClick={() => handleDelete(plan)}
+                  className="flex-1 flex items-center justify-center px-3 py-2 text-sm bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold">
+                {editingPlan ? 'Editar Plan de Membresía' : 'Nuevo Plan de Membresía'}
+              </h2>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              {/* Nombre */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nombre del Plan *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Ej: Plan Mensual Premium"
+                />
+              </div>
+
+              {/* Descripción */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Descripción
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  rows={3}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Describe las características principales del plan..."
+                />
+              </div>
+
+              {/* Días por semana y Precio */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Días por Semana *
+                  </label>
+                  <select
+                    required
+                    value={formData.days_per_week}
+                    onChange={(e) => handleInputChange('days_per_week', parseInt(e.target.value))}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {weeklyOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label} - {option.description}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Precio (ARS) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    step="0.01"
+                    value={formData.price}
+                    onChange={(e) => handleInputChange('price', e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              {/* Características */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Características
+                </label>
+                <textarea
+                  value={formData.features}
+                  onChange={(e) => handleInputChange('features', e.target.value)}
+                  rows={3}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Ej: Acceso completo, clases grupales, asesoramiento nutricional..."
+                />
+              </div>
+
+              {/* Estado */}
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="is_active"
+                  checked={formData.is_active}
+                  onChange={(e) => handleInputChange('is_active', e.target.checked)}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label htmlFor="is_active" className="ml-2 text-sm text-gray-700">
+                  Plan activo (disponible para nuevas membresías)
+                </label>
+              </div>
+
+              {/* Acciones */}
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowModal(false)
+                    resetForm()
+                  }}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center"
+                >
+                  {loading && (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  )}
+                  {editingPlan ? 'Actualizar' : 'Crear'} Plan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <ConfirmDialog />
     </div>
   )
 }

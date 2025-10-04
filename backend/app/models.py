@@ -34,9 +34,9 @@ class Member(Base):
     birth_date = Column(Date)
     emergency_contact_name = Column(String(100))
     emergency_contact_phone = Column(String(20))
-    membership_type = Column(String(20), nullable=False)  # monthly, quarterly, annual, daily
+    membership_plan_id = Column(Integer, ForeignKey("membership_plans.id"), nullable=False)
     membership_start_date = Column(Date, nullable=False)
-    membership_end_date = Column(Date, nullable=False)
+    membership_end_date = Column(Date, nullable=False)  # Se calcula automáticamente (start_date + 1 mes)
     is_active = Column(Boolean, default=True)
     trainer_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Entrenador asignado
     notes = Column(Text)
@@ -44,6 +44,7 @@ class Member(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relaciones
+    membership_plan = relationship("MembershipPlan")
     payments = relationship("Payment", back_populates="member", cascade="all, delete-orphan")
     attendance_records = relationship("Attendance", back_populates="member", cascade="all, delete-orphan")
     trainer = relationship("User", foreign_keys=[trainer_id])  # Entrenador asignado
@@ -124,10 +125,8 @@ class MembershipPlan(Base):
     name = Column(String(100), nullable=False)
     description = Column(Text)
     price = Column(Numeric(10, 2), nullable=False)
-    duration_days = Column(Integer, nullable=False)  # Duración en días
+    days_per_week = Column(Integer, nullable=False)  # Días por semana (1, 2, 3, 4, 5, 6, 7)
     is_active = Column(Boolean, default=True)
     features = Column(Text)  # JSON string con las características del plan
-    max_visits_per_month = Column(Integer, nullable=True)  # Límite de visitas mensuales
-    plan_type = Column(String(20), nullable=False, default="monthly")  # monthly, quarterly, annual, daily
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

@@ -47,18 +47,20 @@ const Payments = () => {
   }
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Pagos</h1>
-          <p className="mt-2 text-gray-600">Gestión de pagos y facturación</p>
+      <div className="bg-gradient-to-r from-purple-600 to-purple-700 rounded-xl p-6 text-white mb-8 shadow-lg">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white">Pagos</h1>
+            <p className="mt-2 text-lg text-purple-100">Gestión de pagos y facturación</p>
+          </div>
+          <button 
+            onClick={() => setShowModal(true)}
+            className="bg-white hover:bg-gray-50 text-purple-700 px-6 py-3 rounded-lg font-semibold flex items-center space-x-2 transition-colors shadow-md mt-4 sm:mt-0 min-w-[140px] justify-center"
+          >
+            <Plus size={20} />
+            <span>Nuevo Pago</span>
+          </button>
         </div>
-        <button 
-          onClick={() => setShowModal(true)}
-          className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium flex items-center space-x-2 transition-colors"
-        >
-          <Plus size={20} />
-          <span>Nuevo Pago</span>
-        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

@@ -9,7 +9,6 @@ import Members from './pages/Members'
 import Payments from './pages/Payments'
 import Attendance from './pages/Attendance'
 import Settings from './pages/Settings'
-import MembershipPlans from './pages/MembershipPlans'
 
 function AppContent() {
   const [currentPage, setCurrentPage] = useState('dashboard')
@@ -22,7 +21,6 @@ function AppContent() {
       'members': 'Socios - Gym Pro',
       'payments': 'Pagos - Gym Pro',
       'attendance': 'Asistencia - Gym Pro',
-      'membership-plans': 'Planes de Membresía - Gym Pro',
       'settings': 'Configuración - Gym Pro'
     }
 
@@ -46,8 +44,6 @@ function AppContent() {
         return <Payments />
       case 'attendance':
         return <Attendance />
-      case 'membership-plans':
-        return <MembershipPlans />
       case 'settings':
         return <Settings />
       default:

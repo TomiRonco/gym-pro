@@ -38,7 +38,7 @@ const MemberEditModal = ({ member, onClose, onSave, membershipTypes }) => {
     birth_date: member.birth_date || '',
     emergency_contact_name: member.emergency_contact_name || '',
     emergency_contact_phone: member.emergency_contact_phone || '',
-    membership_type: member.membership_type || 'monthly',
+    membership_plan_id: member.membership_plan_id || member.membership_type || (membershipTypes.length > 0 ? membershipTypes[0].value : null),
     membership_start_date: member.membership_start_date || '',
     membership_end_date: member.membership_end_date || '',
     notes: member.notes || ''
@@ -64,35 +64,21 @@ const MemberEditModal = ({ member, onClose, onSave, membershipTypes }) => {
     }
   }
 
-  // Calcular fecha de fin de membresía automáticamente
+  // Calcular fecha de fin de membresía automáticamente (siempre 1 mes)
   useEffect(() => {
-    if (formData.membership_start_date && formData.membership_type) {
+    if (formData.membership_start_date && formData.membership_plan_id) {
       const startDate = new Date(formData.membership_start_date)
-      let endDate = new Date(startDate)
-
-      switch (formData.membership_type) {
-        case 'daily':
-          endDate.setDate(startDate.getDate() + 1)
-          break
-        case 'monthly':
-          endDate.setMonth(startDate.getMonth() + 1)
-          break
-        case 'quarterly':
-          endDate.setMonth(startDate.getMonth() + 3)
-          break
-        case 'annual':
-          endDate.setFullYear(startDate.getFullYear() + 1)
-          break
-        default:
-          endDate.setMonth(startDate.getMonth() + 1)
-      }
+      const endDate = new Date(startDate)
+      
+      // Todos los planes tienen vencimiento a 1 mes
+      endDate.setMonth(startDate.getMonth() + 1)
 
       setFormData(prev => ({
         ...prev,
         membership_end_date: endDate.toISOString().split('T')[0]
       }))
     }
-  }, [formData.membership_start_date, formData.membership_type])
+  }, [formData.membership_start_date, formData.membership_plan_id])
 
   // Validar formulario
   const validateForm = () => {
@@ -333,11 +319,11 @@ const MemberEditModal = ({ member, onClose, onSave, membershipTypes }) => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tipo de Membresía
+                    Plan de Membresía
                   </label>
                   <select
-                    name="membership_type"
-                    value={formData.membership_type}
+                    name="membership_plan_id"
+                    value={formData.membership_plan_id}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
@@ -424,6 +410,13 @@ const MemberEditModal = ({ member, onClose, onSave, membershipTypes }) => {
 }
 
 const Members = () => {
+  // Función utilitaria para manejar fechas sin problemas de zona horaria
+  const parseLocalDate = (dateString) => {
+    if (!dateString) return null
+    const [year, month, day] = dateString.split('-')
+    return new Date(year, month - 1, day)
+  }
+
   const [members, setMembers] = useState([])
   const [membershipPlans, setMembershipPlans] = useState([])
   const [loading, setLoading] = useState(true)
@@ -433,6 +426,12 @@ const Members = () => {
   const [selectedMember, setSelectedMember] = useState(null)
   const [editingMember, setEditingMember] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [showFilters, setShowFilters] = useState(false)
+  const [filters, setFilters] = useState({
+    status: 'all', // all, active, inactive
+    membershipPlan: 'all', // all, specific plan id
+    membershipStatus: 'all' // all, vigente, vencida
+  })
   const { success, error } = useNotification()
   const { addMemberActivity } = useActivity()
   const [formData, setFormData] = useState({
@@ -445,7 +444,7 @@ const Members = () => {
     birth_date: '',
     emergency_contact_name: '',
     emergency_contact_phone: '',
-    membership_type: 'monthly',
+    membership_plan_id: null,
     membership_start_date: new Date().toISOString().split('T')[0],
     membership_end_date: '',
     notes: ''
@@ -458,8 +457,8 @@ const Members = () => {
       const plans = await membershipService.getPlans()
       setMembershipPlans(plans)
       // Si no hay plan seleccionado y hay planes disponibles, seleccionar el primero
-      if (!formData.membership_type && plans.length > 0) {
-        setFormData(prev => ({ ...prev, membership_type: plans[0].plan_type }))
+      if (!formData.membership_plan_id && plans.length > 0) {
+        setFormData(prev => ({ ...prev, membership_plan_id: plans[0].id }))
       }
     } catch {
       error('Error al Cargar', 'No se pudieron cargar los planes de membresía')
@@ -474,11 +473,11 @@ const Members = () => {
 
   // Obtener opciones de membresía de los planes cargados
   const membershipTypes = membershipPlans.map(plan => ({
-    value: plan.plan_type,
+    value: plan.id,
     label: plan.name,
     id: plan.id,
     price: plan.price,
-    duration_days: plan.duration_days
+    days_per_week: plan.days_per_week
   }))
 
   // Cargar miembros
@@ -495,42 +494,21 @@ const Members = () => {
     }
   }
 
-  // Calcular fecha de fin de membresía automáticamente
+  // Calcular fecha de fin de membresía automáticamente (siempre 1 mes)
   useEffect(() => {
-    if (formData.membership_start_date && formData.membership_type) {
+    if (formData.membership_start_date && formData.membership_plan_id) {
       const startDate = new Date(formData.membership_start_date)
-      let endDate = new Date(startDate)
-
-      // Buscar el plan seleccionado para obtener la duración exacta
-      const selectedPlan = membershipPlans.find(plan => plan.plan_type === formData.membership_type)
-      if (selectedPlan) {
-        endDate.setDate(startDate.getDate() + selectedPlan.duration_days)
-      } else {
-        // Fallback a lógica anterior si no se encuentra el plan
-        switch (formData.membership_type) {
-          case 'daily':
-            endDate.setDate(startDate.getDate() + 1)
-            break
-          case 'monthly':
-            endDate.setMonth(startDate.getMonth() + 1)
-            break
-          case 'quarterly':
-            endDate.setMonth(startDate.getMonth() + 3)
-            break
-          case 'annual':
-            endDate.setFullYear(startDate.getFullYear() + 1)
-            break
-          default:
-            endDate.setMonth(startDate.getMonth() + 1)
-        }
-      }
+      const endDate = new Date(startDate)
+      
+      // Todos los planes tienen vencimiento a 1 mes
+      endDate.setMonth(startDate.getMonth() + 1)
 
       setFormData(prev => ({
         ...prev,
         membership_end_date: endDate.toISOString().split('T')[0]
       }))
     }
-  }, [formData.membership_start_date, formData.membership_type, membershipPlans])
+  }, [formData.membership_start_date, formData.membership_plan_id])
 
   useEffect(() => {
     loadMembers()
@@ -608,7 +586,7 @@ const Members = () => {
         birth_date: '',
         emergency_contact_name: '',
         emergency_contact_phone: '',
-        membership_type: 'monthly',
+        membership_plan_id: membershipPlans.length > 0 ? membershipPlans[0].id : null,
         membership_start_date: new Date().toISOString().split('T')[0],
         membership_end_date: '',
         notes: ''
@@ -643,9 +621,18 @@ const Members = () => {
   }
 
   // Función para ver detalles del socio
-  const handleViewMember = (member) => {
-    setSelectedMember(member)
-    setShowViewModal(true)
+  const handleViewMember = async (member) => {
+    try {
+      // Obtener los datos más recientes del miembro
+      const freshMemberData = await membersService.getMember(member.id)
+      setSelectedMember(freshMemberData)
+      setShowViewModal(true)
+    } catch (err) {
+      console.error('Error loading fresh member data:', err)
+      // Si hay error, usar los datos que ya tenemos
+      setSelectedMember(member)
+      setShowViewModal(true)
+    }
   }
 
   // Función para editar socio
@@ -703,28 +690,68 @@ const Members = () => {
   }
 
   // Filtrar miembros
-  const filteredMembers = members.filter(member =>
-    member.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.membership_number?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredMembers = members.filter(member => {
+    // Filtro de búsqueda de texto
+    const matchesSearch = !searchTerm || 
+      member.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      member.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      member.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      member.membership_number?.toLowerCase().includes(searchTerm.toLowerCase())
+
+    // Filtro de estado del socio
+    const matchesStatus = filters.status === 'all' || 
+      (filters.status === 'active' && member.is_active) ||
+      (filters.status === 'inactive' && !member.is_active)
+
+    // Filtro de plan de membresía
+    const matchesPlan = filters.membershipPlan === 'all' || 
+      member.membership_plan_id === parseInt(filters.membershipPlan) ||
+      member.membership_type === parseInt(filters.membershipPlan) ||
+      member.membership_plan_id === filters.membershipPlan ||
+      member.membership_type === filters.membershipPlan
+
+    // Debug para ver los valores
+    if (filters.membershipPlan !== 'all') {
+      console.log('Filtering by plan:', {
+        filterValue: filters.membershipPlan,
+        filterValueInt: parseInt(filters.membershipPlan),
+        memberPlanId: member.membership_plan_id,
+        memberType: member.membership_type,
+        matches: matchesPlan
+      })
+    }
+
+    // Filtro de estado de membresía (vigente/vencida)
+    const matchesMembershipStatus = filters.membershipStatus === 'all' || (() => {
+      if (!member.membership_end_date) return filters.membershipStatus === 'all'
+      const endDate = parseLocalDate(member.membership_end_date)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const isActive = endDate >= today
+      return (filters.membershipStatus === 'vigente' && isActive) ||
+             (filters.membershipStatus === 'vencida' && !isActive)
+    })()
+
+    return matchesSearch && matchesStatus && matchesPlan && matchesMembershipStatus
+  })
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Socios</h1>
-          <p className="text-gray-600">Gestiona los socios del gimnasio</p>
+      <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-xl p-6 text-white mb-6 shadow-lg">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-white">Socios</h1>
+            <p className="mt-2 text-lg text-green-100">Gestiona los socios del gimnasio</p>
+          </div>
+          <button
+            onClick={() => setShowModal(true)}
+            className="bg-white hover:bg-gray-50 text-green-700 px-6 py-3 rounded-lg flex items-center space-x-2 transition-colors font-semibold shadow-md min-w-[140px] justify-center"
+          >
+            <Plus size={20} />
+            <span>Nuevo Socio</span>
+          </button>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-        >
-          <Plus size={20} />
-          <span>Nuevo Socio</span>
-        </button>
       </div>
 
       {/* Búsqueda y filtros */}
@@ -741,16 +768,110 @@ const Members = () => {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
-            <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center space-x-2">
+            <button 
+              onClick={() => setShowFilters(!showFilters)}
+              className={`px-4 py-2 border rounded-lg flex items-center space-x-2 transition-colors ${
+                showFilters 
+                  ? 'bg-blue-50 border-blue-200 text-blue-700' 
+                  : 'border-gray-300 hover:bg-gray-50'
+              }`}
+            >
               <Filter size={20} />
               <span>Filtros</span>
+              {(filters.status !== 'all' || filters.membershipPlan !== 'all' || filters.membershipStatus !== 'all') && (
+                <span className="bg-blue-600 text-white text-xs rounded-full w-2 h-2"></span>
+              )}
             </button>
           </div>
+          
+          {/* Panel de filtros expandible */}
+          {showFilters && (
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Filtro por estado del socio */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Estado del Socio
+                  </label>
+                  <select
+                    value={filters.status}
+                    onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="all">Todos</option>
+                    <option value="active">Activos</option>
+                    <option value="inactive">Inactivos</option>
+                  </select>
+                </div>
+
+                {/* Filtro por plan de membresía */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Plan de Membresía
+                  </label>
+                  <select
+                    value={filters.membershipPlan}
+                    onChange={(e) => setFilters(prev => ({ ...prev, membershipPlan: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="all">Todos los planes</option>
+                    {membershipTypes.map(plan => (
+                      <option key={plan.value} value={plan.value}>
+                        {plan.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Filtro por estado de membresía */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Estado de Membresía
+                  </label>
+                  <select
+                    value={filters.membershipStatus}
+                    onChange={(e) => setFilters(prev => ({ ...prev, membershipStatus: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="all">Todas</option>
+                    <option value="vigente">Vigentes</option>
+                    <option value="vencida">Vencidas</option>
+                  </select>
+                </div>
+              </div>
+              
+              {/* Botón para limpiar filtros */}
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => setFilters({
+                    status: 'all',
+                    membershipPlan: 'all',
+                    membershipStatus: 'all'
+                  })}
+                  className="text-sm text-gray-600 hover:text-gray-800 underline"
+                >
+                  Limpiar filtros
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Lista de socios */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        {/* Header con contador de resultados */}
+        {!loading && members.length > 0 && (
+          <div className="px-6 py-3 border-b border-gray-200 bg-gray-50 rounded-t-xl">
+            <p className="text-sm text-gray-600">
+              Mostrando {filteredMembers.length} de {members.length} socios
+              {(searchTerm || filters.status !== 'all' || filters.membershipPlan !== 'all' || filters.membershipStatus !== 'all') && (
+                <span className="text-blue-600 ml-1">(filtrados)</span>
+              )}
+            </p>
+          </div>
+        )}
+        
         {loading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -824,7 +945,9 @@ const Members = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900 capitalize">
-                        {membershipTypes.find(type => type.value === member.membership_type)?.label || member.membership_type}
+                        {membershipTypes.find(type => type.value === member.membership_plan_id)?.label || 
+                         membershipTypes.find(type => type.value === member.membership_type)?.label || 
+                         'Plan no encontrado'}
                       </div>
                       <div className="text-sm text-gray-500">
                         Vence: {new Date(member.membership_end_date).toLocaleDateString('es-ES')}
@@ -1064,11 +1187,11 @@ const Members = () => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Tipo de Membresía *
+                        Plan de Membresía *
                       </label>
                       <select
-                        name="membership_type"
-                        value={formData.membership_type}
+                        name="membership_plan_id"
+                        value={formData.membership_plan_id}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
@@ -1201,7 +1324,27 @@ const Members = () => {
                   <div>
                     <label className="text-sm font-medium text-gray-500">Fecha de Nacimiento</label>
                     <p className="text-gray-900">
-                      {selectedMember.birth_date ? new Date(selectedMember.birth_date).toLocaleDateString() : 'No especificada'}
+                      {selectedMember.birth_date ? (
+                        <>
+                          {parseLocalDate(selectedMember.birth_date).toLocaleDateString('es-ES', {
+                            day: '2-digit',
+                            month: 'long',
+                            year: 'numeric'
+                          })}
+                          <span className="text-sm text-gray-500 ml-2">
+                            ({(() => {
+                              const birthDate = parseLocalDate(selectedMember.birth_date)
+                              const today = new Date()
+                              const age = today.getFullYear() - birthDate.getFullYear()
+                              const monthDiff = today.getMonth() - birthDate.getMonth()
+                              if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                                return age - 1
+                              }
+                              return age
+                            })()} años)
+                          </span>
+                        </>
+                      ) : 'No especificada'}
                     </p>
                   </div>
                 </div>
@@ -1222,32 +1365,150 @@ const Members = () => {
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Tipo de Membresía</label>
-                    <p className="text-gray-900 capitalize">{selectedMember.membership_type}</p>
+                    <label className="text-sm font-medium text-gray-500">Número de Socio</label>
+                    <p className="text-gray-900">{selectedMember.membership_number || 'No asignado'}</p>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Plan de Membresía</label>
+                    <p className="text-gray-900">
+                      {membershipTypes.find(type => type.value === selectedMember.membership_plan_id)?.label || 
+                       membershipTypes.find(type => type.value === selectedMember.membership_type)?.label || 
+                       'Plan no encontrado'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Días por Semana</label>
+                    <p className="text-gray-900">
+                      {membershipTypes.find(type => type.value === selectedMember.membership_plan_id)?.days_per_week || 
+                       membershipTypes.find(type => type.value === selectedMember.membership_type)?.days_per_week || 
+                       'No especificado'} días
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Precio del Plan</label>
+                    <p className="text-gray-900">
+                      ${membershipTypes.find(type => type.value === selectedMember.membership_plan_id)?.price || 
+                        membershipTypes.find(type => type.value === selectedMember.membership_type)?.price || 
+                        'No especificado'}
+                    </p>
                   </div>
 
                   <div>
                     <label className="text-sm font-medium text-gray-500">Fecha de Inicio</label>
                     <p className="text-gray-900">
-                      {selectedMember.membership_start_date ? new Date(selectedMember.membership_start_date).toLocaleDateString() : 'No especificada'}
+                      {selectedMember.membership_start_date ? (() => {
+                        const [year, month, day] = selectedMember.membership_start_date.split('-')
+                        const localDate = new Date(year, month - 1, day)
+                        return localDate.toLocaleDateString('es-ES', {
+                          day: '2-digit',
+                          month: 'long',
+                          year: 'numeric'
+                        })
+                      })() : 'No especificada'}
                     </p>
                   </div>
 
                   <div>
                     <label className="text-sm font-medium text-gray-500">Fecha de Vencimiento</label>
                     <p className="text-gray-900">
-                      {selectedMember.membership_end_date ? new Date(selectedMember.membership_end_date).toLocaleDateString() : 'No especificada'}
+                      {selectedMember.membership_end_date ? (
+                        <>
+                          {(() => {
+                            const [year, month, day] = selectedMember.membership_end_date.split('-')
+                            const localDate = new Date(year, month - 1, day)
+                            return localDate.toLocaleDateString('es-ES', {
+                              day: '2-digit',
+                              month: 'long',
+                              year: 'numeric'
+                            })
+                          })()}
+                          <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
+                            (() => {
+                              const [year, month, day] = selectedMember.membership_end_date.split('-')
+                              const endDate = new Date(year, month - 1, day)
+                              const today = new Date()
+                              today.setHours(0, 0, 0, 0) // Comparar solo fechas, no horas
+                              return endDate >= today
+                            })()
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {(() => {
+                              const [year, month, day] = selectedMember.membership_end_date.split('-')
+                              const endDate = new Date(year, month - 1, day)
+                              const today = new Date()
+                              today.setHours(0, 0, 0, 0)
+                              return endDate >= today ? 'Vigente' : 'Vencida'
+                            })()}
+                          </span>
+                        </>
+                      ) : 'No especificada'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Tiempo de Membresía</label>
+                    <p className="text-gray-900">
+                      {selectedMember.membership_start_date ? (
+                        <>
+                          {(() => {
+                            const [year, month, day] = selectedMember.membership_start_date.split('-')
+                            const startDate = new Date(year, month - 1, day)
+                            const today = new Date()
+                            const diffTime = today - startDate
+                            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+                            const months = Math.floor(diffDays / 30.44)
+                            return months
+                          })()} meses
+                          <span className="text-sm text-gray-500 ml-1">
+                            (desde {(() => {
+                              const [year, month, day] = selectedMember.membership_start_date.split('-')
+                              const localDate = new Date(year, month - 1, day)
+                              return localDate.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })
+                            })()})
+                          </span>
+                        </>
+                      ) : 'No calculable'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Fecha de Registro</label>
+                    <p className="text-gray-900">
+                      {selectedMember.created_at ? (() => {
+                        // Para created_at usamos Date normal ya que incluye tiempo
+                        const date = new Date(selectedMember.created_at)
+                        return date.toLocaleDateString('es-ES', {
+                          day: '2-digit',
+                          month: 'long',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })
+                      })() : 'No disponible'}
                     </p>
                   </div>
 
                   <div>
                     <label className="text-sm font-medium text-gray-500">Contacto de Emergencia</label>
-                    <p className="text-gray-900">
-                      {selectedMember.emergency_contact_name || 'No especificado'}
-                      {selectedMember.emergency_contact_phone && (
-                        <span className="block text-sm text-gray-600">{selectedMember.emergency_contact_phone}</span>
+                    <div className="text-gray-900">
+                      {selectedMember.emergency_contact_name ? (
+                        <div className="space-y-1">
+                          <p className="font-medium">{selectedMember.emergency_contact_name}</p>
+                          {selectedMember.emergency_contact_phone && (
+                            <p className="text-sm text-gray-600 flex items-center">
+                              <Phone size={14} className="mr-1" />
+                              {selectedMember.emergency_contact_phone}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-gray-500 italic">No especificado</p>
                       )}
-                    </p>
+                    </div>
                   </div>
 
                   {selectedMember.notes && (
@@ -1259,10 +1520,20 @@ const Members = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end mt-6 pt-6 border-t border-gray-200">
+              <div className="flex justify-between items-center mt-6 pt-6 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    setShowViewModal(false)
+                    handleEditMember(selectedMember)
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+                >
+                  <Edit size={16} />
+                  <span>Editar Socio</span>
+                </button>
                 <button
                   onClick={() => setShowViewModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   Cerrar
                 </button>

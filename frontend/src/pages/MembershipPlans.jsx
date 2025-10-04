@@ -34,19 +34,19 @@ const MembershipPlans = () => {
     name: '',
     description: '',
     price: '',
-    duration_days: '',
-    plan_type: 'monthly',
-    max_visits_per_month: '',
+    days_per_week: 1,
     features: '',
     is_active: true
   })
 
-  const planTypes = [
-    { value: 'daily', label: 'Diario', days: 1 },
-    { value: 'weekly', label: 'Semanal', days: 7 },
-    { value: 'monthly', label: 'Mensual', days: 30 },
-    { value: 'quarterly', label: 'Trimestral', days: 90 },
-    { value: 'annual', label: 'Anual', days: 365 }
+  const weeklyOptions = [
+    { value: 1, label: '1 día por semana', description: 'Ideal para principiantes' },
+    { value: 2, label: '2 días por semana', description: 'Rutina básica de ejercicio' },
+    { value: 3, label: '3 días por semana', description: 'Entrenamiento balanceado' },
+    { value: 4, label: '4 días por semana', description: 'Entrenamiento intensivo' },
+    { value: 5, label: '5 días por semana', description: 'Para deportistas' },
+    { value: 6, label: '6 días por semana', description: 'Entrenamiento avanzado' },
+    { value: 7, label: '7 días por semana', description: 'Acceso libre completo' }
   ]
 
   const loadPlans = async () => {
@@ -72,9 +72,10 @@ const MembershipPlans = () => {
       )
     }
 
-    // Filtrar por tipo
+    // Filtrar por días por semana
     if (filterType !== 'all') {
-      filtered = filtered.filter(plan => plan.plan_type === filterType)
+      const days = parseInt(filterType)
+      filtered = filtered.filter(plan => plan.days_per_week === days)
     }
 
     setFilteredPlans(filtered)
@@ -93,9 +94,7 @@ const MembershipPlans = () => {
       name: '',
       description: '',
       price: '',
-      duration_days: '',
-      plan_type: 'monthly',
-      max_visits_per_month: '',
+      days_per_week: 1,
       features: '',
       is_active: true
     })
@@ -177,14 +176,6 @@ const MembershipPlans = () => {
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
-    
-    // Auto-calcular días según el tipo de plan
-    if (field === 'plan_type') {
-      const planType = planTypes.find(pt => pt.value === value)
-      if (planType) {
-        setFormData(prev => ({ ...prev, duration_days: planType.days.toString() }))
-      }
-    }
   }
 
   const formatPrice = (price) => {
@@ -194,9 +185,9 @@ const MembershipPlans = () => {
     }).format(price)
   }
 
-  const getPlanTypeLabel = (type) => {
-    const planType = planTypes.find(pt => pt.value === type)
-    return planType ? planType.label : type
+  const getDaysPerWeekLabel = (days) => {
+    const option = weeklyOptions.find(opt => opt.value === days)
+    return option ? option.label : `${days} días por semana`
   }
 
   return (
@@ -205,7 +196,7 @@ const MembershipPlans = () => {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center">
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center">
               <Star className="w-8 h-8 text-yellow-500 mr-3" />
               Planes de Membresía
             </h1>
@@ -247,16 +238,16 @@ const MembershipPlans = () => {
             </div>
           </div>
 
-          {/* Filtro por tipo */}
+          {/* Filtro por días por semana */}
           <div className="lg:w-48">
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
               className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="all">Todos los tipos</option>
-              {planTypes.map(type => (
-                <option key={type.value} value={type.value}>{type.label}</option>
+              <option value="all">Todos los planes</option>
+              {weeklyOptions.map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
               ))}
             </select>
           </div>
@@ -344,15 +335,13 @@ const MembershipPlans = () => {
                 <div className="space-y-2 text-sm text-gray-600 mb-4">
                   <div className="flex items-center">
                     <Calendar className="w-4 h-4 mr-2" />
-                    {plan.duration_days} días ({getPlanTypeLabel(plan.plan_type)})
+                    {plan.days_per_week} {plan.days_per_week === 1 ? 'día' : 'días'} por semana
                   </div>
                   
-                  {plan.max_visits_per_month && (
-                    <div className="flex items-center">
-                      <Users className="w-4 h-4 mr-2" />
-                      {plan.max_visits_per_month} visitas/mes
-                    </div>
-                  )}
+                  <div className="flex items-center">
+                    <Clock className="w-4 h-4 mr-2" />
+                    Vencimiento: 1 mes desde el inicio
+                  </div>
                 </div>
 
                 {/* Características */}
@@ -388,8 +377,8 @@ const MembershipPlans = () => {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200">
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-xl font-semibold">
                 {editingPlan ? 'Editar Plan de Membresía' : 'Nuevo Plan de Membresía'}
@@ -426,41 +415,26 @@ const MembershipPlans = () => {
                 />
               </div>
 
-              {/* Tipo y Duración */}
+              {/* Días por semana y Precio */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tipo de Plan *
+                    Días por Semana *
                   </label>
                   <select
                     required
-                    value={formData.plan_type}
-                    onChange={(e) => handleInputChange('plan_type', e.target.value)}
+                    value={formData.days_per_week}
+                    onChange={(e) => handleInputChange('days_per_week', parseInt(e.target.value))}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    {planTypes.map(type => (
-                      <option key={type.value} value={type.value}>{type.label}</option>
+                    {weeklyOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label} - {option.description}
+                      </option>
                     ))}
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Duración (días) *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    value={formData.duration_days}
-                    onChange={(e) => handleInputChange('duration_days', e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-
-              {/* Precio y Visitas */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Precio (ARS) *
@@ -474,20 +448,6 @@ const MembershipPlans = () => {
                     onChange={(e) => handleInputChange('price', e.target.value)}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="0.00"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Visitas por mes (opcional)
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={formData.max_visits_per_month}
-                    onChange={(e) => handleInputChange('max_visits_per_month', e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Ilimitado"
                   />
                 </div>
               </div>
