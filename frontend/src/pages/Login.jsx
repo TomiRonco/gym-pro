@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff, User, Lock, Dumbbell } from 'lucide-react';
 
 const Login = () => {
@@ -14,9 +13,9 @@ const Login = () => {
 
   const { login, isAuthenticated } = useAuth();
 
-  // Redirigir si ya está autenticado
+  // Si ya está autenticado, no mostrar el login
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return null;
   }
 
   const handleSubmit = async (e) => {
