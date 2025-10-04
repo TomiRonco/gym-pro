@@ -10,11 +10,10 @@ export const useConfirm = () => {
     confirmText: 'Confirmar',
     cancelText: 'Cancelar',
     type: 'warning',
-    onConfirm: () => {},
     loading: false
   })
   
-  let resolvePromise = null
+  let resolveRef = null
 
   const showConfirm = ({
     title,
@@ -24,7 +23,7 @@ export const useConfirm = () => {
     type = 'warning'
   }) => {
     return new Promise((resolve) => {
-      resolvePromise = resolve
+      resolveRef = resolve
       setConfirmState({
         isOpen: true,
         title,
@@ -32,18 +31,23 @@ export const useConfirm = () => {
         confirmText,
         cancelText,
         type,
-        onConfirm: () => {
-          resolve(true)
-          hideConfirm()
-        },
         loading: false
       })
     })
   }
 
-  const hideConfirm = () => {
-    if (resolvePromise && confirmState.isOpen) {
-      resolvePromise(false)
+  const handleConfirm = () => {
+    if (resolveRef) {
+      resolveRef(true)
+      resolveRef = null
+    }
+    setConfirmState(prev => ({ ...prev, isOpen: false }))
+  }
+
+  const handleCancel = () => {
+    if (resolveRef) {
+      resolveRef(false)
+      resolveRef = null
     }
     setConfirmState(prev => ({ ...prev, isOpen: false }))
   }
@@ -55,14 +59,15 @@ export const useConfirm = () => {
   return {
     confirmState,
     showConfirm,
-    hideConfirm,
+    handleConfirm,
+    handleCancel,
     setLoading
   }
 }
 
 // Hook más simple para casos básicos
 export const useSimpleConfirm = () => {
-  const { confirmState, showConfirm, hideConfirm } = useConfirm()
+  const { confirmState, showConfirm, handleConfirm, handleCancel } = useConfirm()
 
   const confirm = (options) => {
     if (typeof options === 'string') {
@@ -107,8 +112,8 @@ export const useSimpleConfirm = () => {
 
   const ConfirmDialogComponent = () => React.createElement(ConfirmDialog, {
     isOpen: confirmState.isOpen,
-    onClose: hideConfirm,
-    onConfirm: confirmState.onConfirm,
+    onClose: handleCancel,
+    onConfirm: handleConfirm,
     title: confirmState.title,
     message: confirmState.message,
     confirmText: confirmState.confirmText,
