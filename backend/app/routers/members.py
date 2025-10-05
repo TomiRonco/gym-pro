@@ -151,20 +151,12 @@ def get_member(
         models.Payment.is_verified == True
     ).scalar() or 0
     
-    total_visits = db.query(func.count(models.Attendance.id)).filter(
-        models.Attendance.member_id == member_id
-    ).scalar() or 0
-    
-    last_visit = db.query(func.max(models.Attendance.check_in_time)).filter(
-        models.Attendance.member_id == member_id
-    ).scalar()
-    
     # Convertir a dict y agregar estadísticas
     member_dict = member.__dict__.copy()
     member_dict.update({
         "total_payments": total_payments,
-        "total_visits": total_visits,
-        "last_visit": last_visit
+        "total_visits": 0,
+        "last_visit": None
     })
     
     return member_dict
@@ -248,34 +240,3 @@ def get_member_payments(
     ).order_by(models.Payment.payment_date.desc()).offset(skip).limit(limit).all()
     
     return payments
-
-@router.get("/{member_id}/attendance", response_model=List[schemas.Attendance])
-def get_member_attendance(
-    member_id: int,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=200),
-    start_date: Optional[date] = Query(None),
-    end_date: Optional[date] = Query(None),
-    db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)
-):
-    """Obtener historial de asistencia de un socio"""
-    
-    # Verificar que el socio existe
-    member = db.query(models.Member).filter(models.Member.id == member_id).first()
-    if not member:
-        raise HTTPException(status_code=404, detail="Member not found")
-    
-    query = db.query(models.Attendance).filter(models.Attendance.member_id == member_id)
-    
-    # Filtros de fecha
-    if start_date:
-        query = query.filter(models.Attendance.check_in_time >= start_date)
-    if end_date:
-        query = query.filter(models.Attendance.check_in_time <= end_date)
-    
-    attendance = query.order_by(
-        models.Attendance.check_in_time.desc()
-    ).offset(skip).limit(limit).all()
-    
-    return attendance

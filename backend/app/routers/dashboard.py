@@ -39,29 +39,14 @@ def get_dashboard_stats(
         models.Payment.is_verified == True
     ).scalar() or Decimal('0')
     
-    # Asistencia de hoy
-    today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-    today_end = today_start + timedelta(days=1)
-    attendance_today = db.query(func.count(models.Attendance.id)).filter(
-        models.Attendance.check_in_time >= today_start,
-        models.Attendance.check_in_time < today_end
-    ).scalar() or 0
-    
-    # Asistencia del mes
-    month_start = today.replace(day=1)
-    attendance_month = db.query(func.count(models.Attendance.id)).filter(
-        func.date(models.Attendance.check_in_time) >= month_start,
-        func.date(models.Attendance.check_in_time) <= today
-    ).scalar() or 0
-    
     return schemas.DashboardStats(
         total_members=total_members,
         active_members=active_members,
         inactive_members=inactive_members,
         total_payments_today=total_payments_today,
         total_payments_month=total_payments_month,
-        attendance_today=attendance_today,
-        attendance_month=attendance_month
+        attendance_today=0,
+        attendance_month=0
     )
 
 @router.get("/membership-types", response_model=list[schemas.MembershipTypeStats])
@@ -104,11 +89,6 @@ def get_recent_activity(
 ):
     """Obtener actividad reciente del gimnasio"""
     
-    # Últimos check-ins
-    recent_checkins = db.query(models.Attendance).join(models.Member).filter(
-        models.Member.is_active == True
-    ).order_by(models.Attendance.check_in_time.desc()).limit(limit).all()
-    
     # Últimos pagos
     recent_payments = db.query(models.Payment).join(models.Member).filter(
         models.Member.is_active == True
@@ -122,14 +102,7 @@ def get_recent_activity(
     ).order_by(models.Member.created_at.desc()).all()
     
     return {
-        "recent_checkins": [
-            {
-                "member_name": f"{att.member.first_name} {att.member.last_name}",
-                "check_in_time": att.check_in_time,
-                "membership_number": att.member.membership_number
-            }
-            for att in recent_checkins
-        ],
+        "recent_checkins": [],
         "recent_payments": [
             {
                 "member_name": f"{pay.member.first_name} {pay.member.last_name}",
@@ -150,40 +123,6 @@ def get_recent_activity(
             for member in new_members
         ]
     }
-
-@router.get("/attendance-trends")
-def get_attendance_trends(
-    days: int = 30,
-    db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)
-):
-    """Obtener tendencias de asistencia por día"""
-    
-    end_date = date.today()
-    start_date = end_date - timedelta(days=days-1)
-    
-    # Contar asistencia por día
-    daily_attendance = db.query(
-        func.date(models.Attendance.check_in_time).label('date'),
-        func.count(models.Attendance.id).label('count')
-    ).filter(
-        func.date(models.Attendance.check_in_time) >= start_date,
-        func.date(models.Attendance.check_in_time) <= end_date
-    ).group_by(func.date(models.Attendance.check_in_time)).all()
-    
-    # Crear lista completa de días (incluyendo días sin asistencia)
-    attendance_by_date = {str(att_date): count for att_date, count in daily_attendance}
-    
-    result = []
-    current_date = start_date
-    while current_date <= end_date:
-        result.append({
-            "date": str(current_date),
-            "attendance": attendance_by_date.get(str(current_date), 0)
-        })
-        current_date += timedelta(days=1)
-    
-    return result
 
 @router.get("/revenue-trends")
 def get_revenue_trends(

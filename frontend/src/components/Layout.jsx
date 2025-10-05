@@ -18,7 +18,6 @@ const Layout = ({ children, currentPage, onPageChange }) => {
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'members', label: 'Socios', icon: Users },
     { id: 'payments', label: 'Pagos', icon: CreditCard },
-    { id: 'attendance', label: 'Asistencia', icon: UserCheck },
   ]
 
   const handleLogout = () => {

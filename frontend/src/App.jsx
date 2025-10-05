@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react'
-import { AuthProvider, useAuth } from './context/AuthContext'
+import { AuthProvider } from './context/AuthContext'
 import { NotificationProvider } from './context/NotificationContext'
 import { ActivityProvider } from './context/ActivityContext'
 import Login from './pages/Login'
-import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Members from './pages/Members'
 import Payments from './pages/Payments'
-import Attendance from './pages/Attendance'
 import Settings from './pages/Settings'
+import Layout from './components/Layout'
+import { useAuth } from './context/AuthContext'
 
 function AppContent() {
   const [currentPage, setCurrentPage] = useState('dashboard')
@@ -20,7 +20,6 @@ function AppContent() {
       'dashboard': 'Dashboard - Gym Pro',
       'members': 'Socios - Gym Pro',
       'payments': 'Pagos - Gym Pro',
-      'attendance': 'Asistencia - Gym Pro',
       'settings': 'Configuración - Gym Pro'
     }
 
@@ -42,12 +41,10 @@ function AppContent() {
         return <Members />
       case 'payments':
         return <Payments />
-      case 'attendance':
-        return <Attendance />
       case 'settings':
         return <Settings />
       default:
-        return <Dashboard onPageChange={setCurrentPage} />
+        return <Dashboard />
     }
   }
 

@@ -133,30 +133,6 @@ class Payment(PaymentBase):
 class PaymentWithMember(Payment):
     member: Member
 
-# Esquemas para Attendance
-class AttendanceBase(BaseModel):
-    member_id: int
-    notes: Optional[str] = None
-
-class AttendanceCreate(AttendanceBase):
-    pass
-
-class AttendanceCheckOut(BaseModel):
-    notes: Optional[str] = None
-
-class Attendance(AttendanceBase):
-    id: int
-    check_in_time: datetime
-    check_out_time: Optional[datetime] = None
-    duration_minutes: Optional[int] = None
-    created_at: datetime
-    
-    class Config:
-        from_attributes = True
-
-class AttendanceWithMember(Attendance):
-    member: Member
-
 # Esquemas para Auth
 class LoginRequest(BaseModel):
     email: str

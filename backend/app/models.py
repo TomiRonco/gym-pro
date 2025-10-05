@@ -46,7 +46,6 @@ class Member(Base):
     # Relaciones
     membership_plan = relationship("MembershipPlan")
     payments = relationship("Payment", back_populates="member", cascade="all, delete-orphan")
-    attendance_records = relationship("Attendance", back_populates="member", cascade="all, delete-orphan")
     trainer = relationship("User", foreign_keys=[trainer_id])  # Entrenador asignado
 
 class Payment(Base):
@@ -69,21 +68,6 @@ class Payment(Base):
     # Relaciones
     member = relationship("Member", back_populates="payments")
     verifier = relationship("User", foreign_keys=[verified_by])
-
-class Attendance(Base):
-    """Modelo para registro de asistencia"""
-    __tablename__ = "attendance"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    member_id = Column(Integer, ForeignKey("members.id"), nullable=False)
-    check_in_time = Column(DateTime(timezone=True), server_default=func.now())
-    check_out_time = Column(DateTime(timezone=True), nullable=True)
-    duration_minutes = Column(Integer, nullable=True)  # Calculado automáticamente
-    notes = Column(Text)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
-    # Relaciones
-    member = relationship("Member", back_populates="attendance_records")
 
 class GymSettings(Base):
     """Modelo para configuración general del gimnasio"""

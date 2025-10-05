@@ -24,7 +24,9 @@ import {
   Users,
   CheckCircle,
   XCircle,
-  Star
+  Star,
+  AlertTriangle,
+  RotateCcw
 } from 'lucide-react'
 import { settingsService } from '../services/settingsService'
 import { membershipService } from '../services/membershipService'
@@ -39,7 +41,8 @@ const SettingsPage = () => {
   const tabs = [
     { id: 'gym', label: 'Información del Gimnasio', icon: Building },
     { id: 'schedules', label: 'Horarios', icon: Clock },
-    { id: 'plans', label: 'Planes de Membresía', icon: CreditCard }
+    { id: 'plans', label: 'Planes de Membresía', icon: CreditCard },
+    { id: 'reset', label: 'Resetear Base de Datos', icon: RotateCcw }
   ]
 
   const renderContent = () => {
@@ -50,6 +53,8 @@ const SettingsPage = () => {
         return <ScheduleSettings />
       case 'plans':
         return <MembershipPlansSettings />
+      case 'reset':
+        return <DatabaseResetSettings success={success} error={error} />
       default:
         return <GymInfoSettings loading={loading} setLoading={setLoading} success={success} error={error} />
     }
@@ -1067,6 +1072,143 @@ const MembershipPlansSettings = () => {
       )}
 
       <ConfirmDialog />
+    </div>
+  )
+}
+
+// Componente para resetear la base de datos
+const DatabaseResetSettings = ({ success, error }) => {
+  const [loading, setLoading] = useState(false)
+  const [confirmText, setConfirmText] = useState('')
+  const [showConfirm, setShowConfirm] = useState(false)
+
+  const handleReset = async () => {
+    if (confirmText !== 'RESETEAR') {
+      error('Confirmación incorrecta', 'Debe escribir exactamente "RESETEAR" para continuar')
+      return
+    }
+
+    setLoading(true)
+    try {
+      // Llamar al endpoint de reset
+      const response = await fetch('http://localhost:8000/api/admin/reset-database', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        }
+      })
+
+      if (response.ok) {
+        success('Base de Datos Reseteada', 'Todos los datos han sido eliminados exitosamente')
+        setShowConfirm(false)
+        setConfirmText('')
+      } else {
+        const errorData = await response.json()
+        error('Error al Resetear', errorData.detail || 'No se pudo resetear la base de datos')
+      }
+    } catch (err) {
+      console.error('Reset error:', err)
+      error('Error de Conexión', 'No se pudo conectar con el servidor')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+        <div className="flex items-start">
+          <AlertTriangle className="h-6 w-6 text-red-600 mr-3 mt-0.5" />
+          <div>
+            <h3 className="text-lg font-semibold text-red-800 mb-2">
+              ⚠️ Zona Peligrosa
+            </h3>
+            <p className="text-red-700 mb-4">
+              Esta acción eliminará permanentemente todos los datos del gimnasio, incluyendo:
+            </p>
+            <ul className="list-disc list-inside text-red-700 space-y-1 mb-4">
+              <li>Todos los socios registrados</li>
+              <li>Historial completo de pagos</li>
+              <li>Configuración del gimnasio</li>
+              <li>Horarios establecidos</li>
+              <li>Planes de membresía</li>
+            </ul>
+            <p className="text-red-700 font-semibold">
+              ⚠️ La cuenta de administrador se mantendrá intacta.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Resetear Base de Datos
+        </h3>
+        
+        {!showConfirm ? (
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              Use esta función únicamente si desea empezar completamente de cero con el sistema.
+              Esta acción no se puede deshacer.
+            </p>
+            <button
+              onClick={() => setShowConfirm(true)}
+              className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+            >
+              Iniciar Reset de Base de Datos
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-gray-900 font-semibold">
+              Para confirmar esta acción, escriba exactamente "RESETEAR" en el campo de abajo:
+            </p>
+            <input
+              type="text"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder="Escriba RESETEAR para confirmar"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+            />
+            <div className="flex space-x-4">
+              <button
+                onClick={handleReset}
+                disabled={loading || confirmText !== 'RESETEAR'}
+                className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
+                  confirmText === 'RESETEAR' && !loading
+                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                {loading ? 'Reseteando...' : 'Confirmar Reset'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowConfirm(false)
+                  setConfirmText('')
+                }}
+                className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-semibold transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-start">
+          <CheckCircle className="h-5 w-5 text-blue-600 mr-2 mt-0.5" />
+          <div className="text-sm text-blue-800">
+            <p className="font-semibold mb-1">Datos que se conservarán:</p>
+            <ul className="list-disc list-inside">
+              <li>Cuenta de administrador actual</li>
+              <li>Configuración básica del sistema</li>
+            </ul>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

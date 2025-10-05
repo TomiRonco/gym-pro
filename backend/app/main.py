@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import members, payments, attendance, auth, dashboard, settings
+from app.routers import members, payments, auth, dashboard, settings, admin
 from app.database import engine
 from app import models
 import os
@@ -36,9 +36,9 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/auth", tags=["🔐 Authentication"])
 app.include_router(members.router, prefix="/api/members", tags=["👥 Members"])
 app.include_router(payments.router, prefix="/api/payments", tags=["💰 Payments"])
-app.include_router(attendance.router, prefix="/api/attendance", tags=["📅 Attendance"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["📊 Dashboard"])
 app.include_router(settings.router, prefix="/api/settings", tags=["⚙️ Settings"])
+app.include_router(admin.router, prefix="/api/admin", tags=["🔧 Admin"])
 
 @app.get("/")
 async def root():
@@ -48,13 +48,12 @@ async def root():
         "status": "running",
         "docs": "/docs",
         "redoc": "/redoc",
-        "endpoints": {
-            "auth": "/api/auth",
-            "members": "/api/members", 
-            "payments": "/api/payments",
-            "attendance": "/api/attendance",
+        "available_endpoints": {
+            "members": "/api/members",
+            "payments": "/api/payments", 
             "dashboard": "/api/dashboard",
-            "settings": "/api/settings"
+            "settings": "/api/settings",
+            "admin": "/api/admin"
         }
     }
 

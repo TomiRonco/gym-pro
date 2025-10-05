@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { 
   Users, 
   UserX, 
@@ -11,7 +11,7 @@ import {
   Clock,
   X
 } from 'lucide-react'
-import { authenticatedFetch } from '../config/api'
+import { paymentsService, membersService } from '../services/api'
 import { useNotification } from '../context/NotificationContext'
 import { useActivity } from '../context/ActivityContext'
 
@@ -21,6 +21,7 @@ const Dashboard = ({ onPageChange }) => {
     activeMembers: 0,
     inactiveMembers: 0,
     monthlyRevenue: 0,
+    currentMonth: new Date().toLocaleString('es-AR', { month: 'long', year: 'numeric' }),
     upcomingExpirations: []
   })
   const [loading, setLoading] = useState(true)
@@ -28,68 +29,68 @@ const Dashboard = ({ onPageChange }) => {
   const [selectedMember, setSelectedMember] = useState(null)
   const { success, error } = useNotification()
   const { recentActivity, addQuickCheckinActivity } = useActivity()
+  
+  // Estado para tracking del mes actual
+  const [lastCheckedMonth, setLastCheckedMonth] = useState(new Date().getMonth())
+  const [lastCheckedYear, setLastCheckedYear] = useState(new Date().getFullYear())
 
   // Cargar estadísticas reales
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     setLoading(true)
     try {
-      // Cargar miembros
-      const membersResponse = await authenticatedFetch('/members')
-      if (membersResponse && membersResponse.ok) {
-        const members = await membersResponse.json()
-        
-        // Calcular estadísticas reales
-        const activeMembers = members.filter(m => m.is_active === true)
-        const inactiveMembers = members.filter(m => m.is_active === false)
-        
-        // Próximos vencimientos (próximos 7 días) solo de miembros activos
-        const nextWeek = new Date()
-        nextWeek.setDate(nextWeek.getDate() + 7)
-        const upcomingExpirations = members.filter(m => {
-          if (!m.is_active || !m.membership_end_date) return false
-          const endDate = new Date(m.membership_end_date)
-          const today = new Date()
-          return endDate > today && endDate <= nextWeek
-        })
+      // Cargar miembros usando el servicio
+      const members = await membersService.getMembers()
+      
+      // Calcular estadísticas reales
+      const activeMembers = members.filter(m => m.is_active === true)
+      const inactiveMembers = members.filter(m => m.is_active === false)
+      
+      // Próximos vencimientos (próximos 7 días) solo de miembros activos
+      const nextWeek = new Date()
+      nextWeek.setDate(nextWeek.getDate() + 7)
+      const upcomingExpirations = members.filter(m => {
+        if (!m.is_active || !m.membership_end_date) return false
+        const endDate = new Date(m.membership_end_date)
+        const today = new Date()
+        return endDate > today && endDate <= nextWeek
+      })
 
-        // Cargar pagos para calcular ingresos del mes
-        let monthlyRevenue = 0
-        try {
-          const paymentsResponse = await authenticatedFetch('/payments')
-          if (paymentsResponse && paymentsResponse.ok) {
-            const payments = await paymentsResponse.json()
-            const currentMonth = new Date().getMonth()
-            const currentYear = new Date().getFullYear()
-            
-            monthlyRevenue = payments
-              .filter(p => {
-                const paymentDate = new Date(p.payment_date)
-                return paymentDate.getMonth() === currentMonth && 
-                       paymentDate.getFullYear() === currentYear
-              })
-              .reduce((sum, p) => sum + (p.amount || 0), 0)
-          }
-        } catch {
-          console.log('No hay datos de pagos aún')
-        }
-
-        setStats({
-          totalMembers: members.length,
-          activeMembers: activeMembers.length,
-          inactiveMembers: inactiveMembers.length,
-          monthlyRevenue,
-          upcomingExpirations
+      // Cargar pagos para calcular ingresos del mes
+      let monthlyRevenue = 0
+      try {
+        const payments = await paymentsService.getPayments()
+        
+        // Obtener fecha actual
+        const now = new Date()
+        const currentMonth = now.getMonth() // 0-11
+        const currentYear = now.getFullYear()
+        
+        const monthlyPayments = payments.filter(p => {
+          if (!p.payment_date) return false
+          
+          const paymentDate = new Date(p.payment_date)
+          const paymentMonth = paymentDate.getMonth()
+          const paymentYear = paymentDate.getFullYear()
+          
+          return paymentMonth === currentMonth && paymentYear === currentYear
         })
-      } else {
-        // Sin miembros en la base de datos
-        setStats({
-          totalMembers: 0,
-          activeMembers: 0,
-          inactiveMembers: 0,
-          monthlyRevenue: 0,
-          upcomingExpirations: []
-        })
+        
+        monthlyRevenue = monthlyPayments.reduce((sum, p) => {
+          const amount = parseFloat(p.amount) || 0
+          return sum + amount
+        }, 0)
+      } catch (error) {
+        console.error('Error cargando pagos:', error)
       }
+
+      setStats({
+        totalMembers: members.length,
+        activeMembers: activeMembers.length,
+        inactiveMembers: inactiveMembers.length,
+        monthlyRevenue,
+        currentMonth: new Date().toLocaleString('es-AR', { month: 'long', year: 'numeric' }),
+        upcomingExpirations
+      })
     } catch (error) {
       console.error('Error loading stats:', error)
       // Error de conexión - mostrar estadísticas en 0
@@ -103,7 +104,19 @@ const Dashboard = ({ onPageChange }) => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  // Función para verificar si cambió el mes
+  const checkMonthChange = useCallback(() => {
+    const currentMonth = new Date().getMonth()
+    const currentYear = new Date().getFullYear()
+    
+    if (currentMonth !== lastCheckedMonth || currentYear !== lastCheckedYear) {
+      setLastCheckedMonth(currentMonth)
+      setLastCheckedYear(currentYear)
+      loadStats() // Recargar estadísticas
+    }
+  }, [lastCheckedMonth, lastCheckedYear, setLastCheckedMonth, setLastCheckedYear, loadStats])
 
   // Función para ver detalles del socio
   const handleViewMember = (member) => {
@@ -123,7 +136,36 @@ const Dashboard = ({ onPageChange }) => {
 
   useEffect(() => {
     loadStats()
-  }, [])
+  }, [loadStats])
+
+  // Recargar estadísticas cuando hay nueva actividad (pagos)
+  useEffect(() => {
+    // Buscar actividades de pago en la actividad reciente
+    const hasRecentPayment = recentActivity.some(activity => 
+      activity.type === 'payment' && 
+      new Date(activity.timestamp).getTime() > Date.now() - 10000 // últimos 10 segundos
+    )
+    
+    if (hasRecentPayment) {
+      loadStats()
+    }
+  }, [recentActivity, loadStats])
+
+  // Timer para verificar cambio de mes cada minuto
+  useEffect(() => {
+    const monthCheckInterval = setInterval(checkMonthChange, 60000) // Verificar cada minuto
+    
+    return () => clearInterval(monthCheckInterval)
+  }, [checkMonthChange])
+
+  // Timer para actualización general cada 5 minutos
+  useEffect(() => {
+    const statsInterval = setInterval(() => {
+      loadStats()
+    }, 5 * 60 * 1000) // 5 minutos
+    
+    return () => clearInterval(statsInterval)
+  }, [loadStats])
 
   const StatCard = ({ title, value, icon: Icon, color, description, onClick }) => (
     <div 
@@ -179,8 +221,8 @@ const Dashboard = ({ onPageChange }) => {
         />
         
         <StatCard
-          title="Ingresos del Mes"
-          value={loading ? '...' : `$${stats.monthlyRevenue.toLocaleString()}`}
+          title={`Ingresos de ${stats.currentMonth}`}
+          value={loading ? '...' : `$${stats.monthlyRevenue.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}`}
           icon={DollarSign}
           color="text-purple-600"
           description="Pagos recibidos"
@@ -354,15 +396,6 @@ const Dashboard = ({ onPageChange }) => {
                   </div>
                 )
               })}
-              
-              {recentActivity.length > 6 && (
-                <button
-                  onClick={() => onPageChange('attendance')}
-                  className="w-full text-center py-3 text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  Ver toda la actividad
-                </button>
-              )}
             </div>
           )}
         </div>
